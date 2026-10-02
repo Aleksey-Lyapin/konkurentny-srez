@@ -295,6 +295,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
       </div>
       <div class="an-controls" id="an-controls">
         <div class="fgroup"><span class="flabel">Аналог: площадь</span><div class="seg seg-sm" id="an-tol"></div></div>
+        <div class="fgroup"><span class="flabel">Аналог: этаж ±</span><div class="seg seg-sm" id="an-fltol"></div></div>
         <div class="fgroup"><span class="flabel">Аналог: также совпадает</span>
           <div class="checks"><label class="check"><input type="checkbox" id="an-fin"> отделка</label><label class="check"><input type="checkbox" id="an-stage"> стадия</label></div>
         </div>
@@ -359,7 +360,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     price: store.get("cs.price") === "list" ? "list" : "disc",
     sort: ["ppm", "area", "budget", "name"].includes(store.get("cs.sort")) ? store.get("cs.sort") : "ppm",
     floor: store.get("cs.floor") === "abs" ? "abs" : "idx",
-    anTol: [5, 10, 15, 20].includes(+store.get("cs.anTol")) ? +store.get("cs.anTol") : 10, anFin: false, anStage: false, lotTab: "ours", openLot: null,
+    anTol: [5, 10, 15, 20].includes(+store.get("cs.anTol")) ? +store.get("cs.anTol") : 10, anFlTol: [3, 5, 10, 999].includes(+store.get("cs.anFlTol")) ? +store.get("cs.anFlTol") : 5, anFin: false, anStage: false, lotTab: "ours", openLot: null,
     sortOurs: { k: "delta", asc: false }, sortAll: { k: "ppm", asc: false },
     rooms: null, finish: null, cls: null, stage: "all", at: null, floors: null, comps: null,
     projSort: { key: "ppm", asc: false }, lotSort: { key: "ppm", asc: true }, lotLimit: 50
@@ -972,7 +973,10 @@ footer.method b { color: var(--ink); font-weight: 600; }
   function medianOf(xs) { if (!xs.length) return null; const s = xs.slice().sort((a, b) => a - b); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
   function analogsOf(o, comp) {
     const t = S.anTol / 100;
-    return comp.filter(c => c.rooms === o.rooms && Math.abs(c.area - o.area) / o.area <= t && (!S.anFin || c.fl === o.fl) && (!S.anStage || c.st === o.st));
+    const ft = S.anFlTol;
+    return comp.filter(c => c.rooms === o.rooms && Math.abs(c.area - o.area) / o.area <= t
+      && (ft >= 999 || (c.floor != null && o.floor != null && Math.abs(c.floor - o.floor) <= ft))
+      && (!S.anFin || c.fl === o.fl) && (!S.anStage || c.st === o.st));
   }
   const lotId = r => r.p + "|" + r.k + "|" + r.lot + "|" + r.floor + "|" + r.area;
   const stageWord = st => st === "сдан" ? "сдан" : "строится";
@@ -988,6 +992,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
 
   function renderAnalogs(V) {
     segGroup("an-tol", [["5", "±5 %"], ["10", "±10 %"], ["15", "±15 %"], ["20", "±20 %"]], String(S.anTol), v => { S.anTol = +v; S.openLot = null; store.set("cs.anTol", v); });
+    segGroup("an-fltol", [["3", "3"], ["5", "5"], ["10", "10"], ["999", "любой"]], String(S.anFlTol), v => { S.anFlTol = +v; S.openLot = null; store.set("cs.anFlTol", v); });
     document.getElementById("an-fin").checked = S.anFin;
     document.getElementById("an-stage").checked = S.anStage;
     document.getElementById("tab-ours").setAttribute("aria-selected", S.lotTab === "ours");
@@ -1000,7 +1005,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
       const rows = V.own.map(l => { const an = analogsOf(l, comp); const med = an.length ? medianOf(an.map(ppmOf)) : null; return { l, an, med, delta: med ? ppmOf(l) / med - 1 : null }; });
       const s = S.sortOurs;
       sortBy(rows, s, (x, k) => ({ corp: x.l.k + " " + x.l.lot, floor: x.l.floor, r: ROOMS.indexOf(x.l.rooms), area: x.l.area, fin: x.l.fl, price: budget(x.l), ppm: ppmOf(x.l), n: x.an.length, med: x.med, delta: x.delta }[k]));
-      const cond = `та же комнатность, площадь ±${S.anTol} %${S.anFin ? ", та же отделка" : ""}${S.anStage ? ", та же стадия" : ""}`;
+      const cond = `та же комнатность, площадь ±${S.anTol} %${S.anFlTol < 999 ? `, этаж ±${S.anFlTol}` : ""}${S.anFin ? ", та же отделка" : ""}${S.anStage ? ", та же стадия" : ""}`;
       hint.textContent = rows.length ? `Нажмите на лот, чтобы увидеть аналоги конкурентов (${cond}).` : "Наших лотов под выбранные фильтры нет.";
       const withAn = rows.filter(x => x.delta != null);
       if (withAn.length) {
@@ -1021,7 +1026,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
             <div class="tbl-wrap"><table class="an-sub"><thead><tr><th class="l">Проект</th><th class="l">Корпус</th><th>Этаж</th><th>Площадь, м²</th><th class="l">Отделка</th><th class="l">Стадия</th><th>Ввод</th><th>Цена, млн ₽</th><th>₽/м²</th><th>Мы vs лот</th></tr></thead><tbody>
             ${an.slice(0, 25).map(a => `<tr><td class="l">${esc(a.p)}</td><td class="l">${esc(a.k)}</td><td>${a.floor ?? "—"}</td><td>${nf1.format(a.area)}</td><td class="l">${esc(a.fl || "—")}</td><td class="l">${stageWord(a.st)}</td><td>${quarter(a.plan)}</td><td>${nf1.format(budget(a) / 1e6)}</td><td>${nf0.format(ppmOf(a))}</td><td>${pill(ppmOf(x.l) / ppmOf(a) - 1, false)}</td></tr>`).join("")}</tbody></table></div>
             ${an.length > 25 ? `<div class="muted small">Показаны 25 ближайших по площади из ${an.length}.</div>` : ""}`
-            : `<div class="muted">Аналогов нет. Увеличьте допуск по площади или снимите условия совпадения.</div>`}</div></td></tr>`;
+            : `<div class="muted">Аналогов нет. Увеличьте допуск по площади или этажу либо снимите условия совпадения.</div>`}</div></td></tr>`;
         }
       });
       tbl.innerHTML = h + "</tbody>";
