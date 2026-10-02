@@ -168,7 +168,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     <div class="fgroup"><span class="flabel">Стадия</span><div class="seg" id="f-stage"></div></div>
     <div class="fgroup"><span class="flabel">Класс</span><div class="chips" id="f-class"></div></div>
     <div class="fgroup"><span class="flabel">Площадь, м²</span>
-      <div class="area"><input id="f-amin" type="number" inputmode="decimal" placeholder="от" aria-label="Площадь от"><span>–</span><input id="f-amax" type="number" inputmode="decimal" placeholder="до" aria-label="Площадь до"></div>
+      <details class="dd" id="f-area"><summary id="f-area-sum">Все</summary><div class="dd-panel" id="f-area-panel"></div></details>
     </div>
     <div class="fgroup"><span class="flabel">Конкуренты</span>
       <details class="dd" id="f-comps"><summary id="f-comps-sum">Все</summary><div class="dd-panel" id="f-comps-panel"></div></details>
@@ -190,6 +190,16 @@ footer.method b { color: var(--ink); font-weight: 600; }
       <h2>Цена м² по диапазонам площади</h2>
       <p class="sub">Наш проект против среднего по конкурентам; серая полоса показывает разброс средних по проектам-конкурентам</p>
       <div class="chart-box" style="height:340px"><canvas id="ch-line"></canvas></div>
+    </article>
+    <article class="card">
+      <h2>Средняя площадь по проектам</h2>
+      <p class="sub">Средняя площадь лота в продаже, м². Наведите на строку, чтобы увидеть разброс</p>
+      <div class="chart-box" id="box-area"><canvas id="ch-area"></canvas></div>
+    </article>
+    <article class="card">
+      <h2>Средний бюджет покупки по проектам</h2>
+      <p class="sub" id="sub-budget"></p>
+      <div class="chart-box" id="box-budget"><canvas id="ch-budget"></canvas></div>
     </article>
     <article class="card full">
       <h2>Цена м² по комнатности</h2>
@@ -273,7 +283,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
   const S = {
     g: GROUPS[initialG] ? initialG : (GROUPS[store.get("cs.g")] ? store.get("cs.g") : "alisa"),
     price: store.get("cs.price") === "list" ? "list" : "disc",
-    rooms: null, finish: null, cls: null, stage: "all", aMin: null, aMax: null, comps: null,
+    rooms: null, finish: null, cls: null, stage: "all", at: null, comps: null,
     projSort: { key: "ppm", asc: false }, lotSort: { key: "ppm", asc: true }, lotLimit: 50
   };
   const budget = r => S.price === "disc" ? r.disc : r.price;
@@ -288,29 +298,34 @@ footer.method b { color: var(--ink); font-weight: 600; }
     S.rooms = new Set(ROOMS.filter(x => rows.some(r => r.rooms === x)));
     S.finish = new Set(uniq(rows.map(r => r.fl)));
     S.cls = new Set(uniq(rows.map(r => r.cls)));
-    S.stage = "all"; S.aMin = null; S.aMax = null;
+    S.stage = "all";
+    S.at = new Set(areaTypes(rows));
     S.comps = new Set(GROUPS[S.g].comps.filter(p => byProject[p]));
     S.lotLimit = 50;
-    document.getElementById("f-amin").value = "";
-    document.getElementById("f-amax").value = "";
   }
   function uniq(a) { return Array.from(new Set(a)).filter(x => x !== "" && x != null).sort((a, b) => String(a).localeCompare(String(b), "ru")); }
+  // Интервалы площади из столбца «Тип площади» (AG), по возрастанию; «вне диапазона» в конце
+  function areaKey(at) { const m = String(at).match(/(\d+)/); return m ? +m[1] : 9999; }
+  function areaTypes(rows) { return uniq(rows.map(r => r.at)).sort((a, b) => areaKey(a) - areaKey(b)); }
 
   function passes(r) {
     return S.rooms.has(r.rooms) && (S.finish.has(r.fl) || !r.fl) && S.cls.has(r.cls)
       && (S.stage === "all" || r.st === S.stage)
-      && (S.aMin == null || r.area >= S.aMin) && (S.aMax == null || r.area <= S.aMax);
+      && (S.at.has(r.at) || !r.at);
   }
 
   // ---------- stats ----------
   function stats(list) {
     if (!list || !list.length) return null;
     let sb = 0, sa = 0, ex = 0, exn = 0;
-    const pp = [];
-    list.forEach(r => { const b = budget(r); sb += b; sa += r.area; pp.push(b / r.area); if (r.expo != null) { ex += r.expo; exn++; } });
-    pp.sort((a, b) => a - b);
+    const pp = [], aa = [], bb = [];
+    list.forEach(r => { const b = budget(r); sb += b; sa += r.area; pp.push(b / r.area); aa.push(r.area); bb.push(b); if (r.expo != null) { ex += r.expo; exn++; } });
+    const asc = (a, b) => a - b;
+    pp.sort(asc); aa.sort(asc); bb.sort(asc);
     const n = list.length;
-    return { n, ppm: sb / sa, min: pp[0], max: pp[n - 1], med: n % 2 ? pp[(n - 1) / 2] : (pp[n / 2 - 1] + pp[n / 2]) / 2, budget: sb / n, area: sa / n, expo: exn ? ex / exn : null };
+    const med = a => n % 2 ? a[(n - 1) / 2] : (a[n / 2 - 1] + a[n / 2]) / 2;
+    return { n, ppm: sb / sa, min: pp[0], max: pp[n - 1], med: med(pp), budget: sb / n, area: sa / n,
+      aMin: aa[0], aMax: aa[n - 1], aMed: med(aa), bMin: bb[0], bMax: bb[n - 1], bMed: med(bb), expo: exn ? ex / exn : null };
   }
 
   // ---------- UI: tabs & filters ----------
@@ -368,15 +383,35 @@ footer.method b { color: var(--ink); font-weight: 600; }
     }));
     const avail = G.comps.filter(p => byProject[p]).length;
     document.getElementById("f-comps-sum").textContent = S.comps.size === avail ? `Все (${avail})` : `${S.comps.size} из ${avail}`;
+
+    // интервалы площади
+    const ats = areaTypes(rows);
+    const apanel = document.getElementById("f-area-panel");
+    apanel.innerHTML = `<div class="dd-actions"><button class="link-btn" type="button" data-a="all">Выбрать все</button><button class="link-btn" type="button" data-a="none">Снять все</button></div>` +
+      ats.map(a => `<label><input type="checkbox" data-at="${esc(a)}" ${S.at.has(a) ? "checked" : ""}>${esc(a === "вне диапазона" ? "Вне диапазона" : a + " м²")}<span class="n">${rows.filter(r => r.at === a).length}</span></label>`).join("");
+    apanel.querySelectorAll("input[data-at]").forEach(cb => cb.addEventListener("change", () => {
+      if (cb.checked) S.at.add(cb.dataset.at); else S.at.delete(cb.dataset.at);
+      S.lotLimit = 50; renderAll();
+    }));
+    apanel.querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => {
+      S.at = b.dataset.a === "all" ? new Set(ats) : new Set();
+      S.lotLimit = 50; renderAll();
+    }));
+    const picked = ats.filter(a => S.at.has(a));
+    document.getElementById("f-area-sum").textContent = picked.length === ats.length ? `Все (${ats.length})`
+      : !picked.length ? "Не выбрано"
+      : picked.length <= 2 ? picked.join(", ")
+      : `${picked[0]} … ${picked[picked.length - 1]} (${picked.length})`;
   }
 
-  ["f-amin", "f-amax"].forEach(id => document.getElementById(id).addEventListener("change", e => {
-    const v = parseFloat(String(e.target.value).replace(",", "."));
-    S[id === "f-amin" ? "aMin" : "aMax"] = isFinite(v) ? v : null;
-    S.lotLimit = 50; renderAll();
-  }));
   document.getElementById("f-reset").addEventListener("click", () => { resetFilters(); renderAll(); });
-  document.addEventListener("click", e => { const dd = document.getElementById("f-comps"); if (dd.open && !dd.contains(e.target)) dd.open = false; });
+  document.addEventListener("click", e => { document.querySelectorAll("details.dd[open]").forEach(dd => { if (!dd.contains(e.target)) dd.open = false; }); });
+  // открываем список влево, если справа не хватает места
+  document.querySelectorAll("details.dd").forEach(dd => dd.addEventListener("toggle", () => {
+    const p = dd.querySelector(".dd-panel");
+    p.style.left = "0"; p.style.right = "auto";
+    if (dd.open && p.getBoundingClientRect().right > document.documentElement.clientWidth - 8) { p.style.left = "auto"; p.style.right = "0"; }
+  }));
 
   // ---------- data view ----------
   function view() {
@@ -435,50 +470,59 @@ footer.method b { color: var(--ink); font-weight: 600; }
       chart.getDatasetMeta(0).data.forEach((bar, i) => {
         const v = chart.data.datasets[0].data[i];
         if (v == null) return;
-        ctx.fillText(th(v), bar.x + 6, bar.y);
+        ctx.fillText(opts.fmt(v), bar.x + 6, bar.y);
       });
       ctx.restore();
     }
   };
 
-  function renderBar(V) {
-    kill("bar");
+  // Горизонтальный рейтинг проектов по одному показателю: наш проект красным, среднее по конкурентам тёмно-синим
+  const RANKS = {
+    bar: { box: "box-bar", get: s => s.ppm, fmt: th, tick: v => nf0.format(v / 1000),
+      tip: s => [`Средняя: ${th(s.ppm)} тыс. ₽/м²`, `Медиана: ${th(s.med)} · мин ${th(s.min)} · макс ${th(s.max)}`] },
+    area: { box: "box-area", get: s => s.area, fmt: v => nf1.format(v), tick: v => nf0.format(v),
+      tip: s => [`Средняя площадь: ${nf1.format(s.area)} м²`, `Медиана: ${nf1.format(s.aMed)} · мин ${nf1.format(s.aMin)} · макс ${nf1.format(s.aMax)} м²`] },
+    budget: { box: "box-budget", get: s => s.budget, fmt: mln, tick: v => nf0.format(v / 1e6),
+      tip: s => [`Средний бюджет: ${mln(s.budget)} млн ₽`, `Медиана: ${mln(s.bMed)} · мин ${mln(s.bMin)} · макс ${mln(s.bMax)} млн ₽`] }
+  };
+  function renderRank(key, V) {
+    const cfg = RANKS[key];
+    kill(key);
     const items = [];
     if (V.sOwn) items.push({ p: V.G.own, s: V.sOwn, own: true });
     Object.entries(V.compsByP).forEach(([p, l]) => { const s = stats(l); if (s) items.push({ p, s }); });
     if (V.sComp) items.push({ p: "Среднее по конкурентам", s: V.sComp, mkt: true });
-    items.sort((a, b) => b.s.ppm - a.s.ppm);
-    const box = document.getElementById("box-bar");
+    items.sort((a, b) => cfg.get(b.s) - cfg.get(a.s));
+    const box = document.getElementById(cfg.box);
     box.style.height = Math.max(160, items.length * 30 + 40) + "px";
-    document.getElementById("sub-bar").textContent = `Цена ${S.price === "disc" ? "со скидкой и корректировкой на отделку" : "по прайсу"}, тыс. ₽/м². Наведите на строку, чтобы увидеть разброс`;
     if (!items.length) { box.innerHTML = `<div class="empty">Нет лотов при выбранных фильтрах</div>`; return; }
-    if (!box.querySelector("canvas")) box.innerHTML = `<canvas id="ch-bar"></canvas>`;
+    if (!box.querySelector("canvas")) box.innerHTML = `<canvas></canvas>`;
     const B = baseOpts();
     const own = cssv("--own"), mkt = cssv("--market"), comp = cssv("--comp");
-    const ownPpm = V.sOwn ? V.sOwn.ppm : null;
-    charts.bar = new Chart(document.getElementById("ch-bar"), {
+    const ownV = V.sOwn ? cfg.get(V.sOwn) : null;
+    charts[key] = new Chart(box.querySelector("canvas"), {
       type: "bar",
       data: {
         labels: items.map(i => i.p.length > 34 ? i.p.slice(0, 32) + "…" : i.p),
-        datasets: [{ data: items.map(i => i.s.ppm), backgroundColor: items.map(i => i.own ? own : i.mkt ? mkt : comp), borderRadius: { topRight: 4, bottomRight: 4 }, borderSkipped: "start", barPercentage: .78, categoryPercentage: .9 }]
+        datasets: [{ data: items.map(i => cfg.get(i.s)), backgroundColor: items.map(i => i.own ? own : i.mkt ? mkt : comp), borderRadius: { topRight: 4, bottomRight: 4 }, borderSkipped: "start", barPercentage: .78, categoryPercentage: .9 }]
       },
       options: Object.assign({}, B, {
-        indexAxis: "y", layout: { padding: { right: 44 } },
+        indexAxis: "y", layout: { padding: { right: 48 } },
         scales: {
-          x: { beginAtZero: true, grid: { color: B.grid }, border: { display: false }, ticks: { callback: v => nf0.format(v / 1000) } },
+          x: { beginAtZero: true, grid: { color: B.grid }, border: { display: false }, ticks: { callback: cfg.tick } },
           y: { grid: { display: false }, border: { color: B.grid }, ticks: { color: B.ink2, font: ctx => ({ weight: items[ctx.index] && items[ctx.index].own ? "700" : "400" }) } }
         },
         plugins: {
           legend: { display: false },
-          endLabels: { color: B.ink2 },
+          endLabels: { color: B.ink2, fmt: cfg.fmt },
           tooltip: Object.assign({}, B.plugins.tooltip, {
             displayColors: false,
             callbacks: {
               title: c => items[c[0].dataIndex].p,
               label: c => {
-                const s = items[c.dataIndex].s;
-                const out = [`Средняя: ${th(s.ppm)} тыс. ₽/м²`, `Медиана: ${th(s.med)} · мин ${th(s.min)} · макс ${th(s.max)}`, `Лотов: ${nf0.format(s.n)}`];
-                if (ownPpm && !items[c.dataIndex].own) out.push(`К нашему проекту: ${pct(s.ppm / ownPpm - 1)}`);
+                const it = items[c.dataIndex];
+                const out = cfg.tip(it.s).concat([`Лотов: ${nf0.format(it.s.n)}`]);
+                if (ownV && !it.own) out.push(`К нашему проекту: ${pct(cfg.get(it.s) / ownV - 1)}`);
                 return out;
               }
             }
@@ -488,8 +532,12 @@ footer.method b { color: var(--ink); font-weight: 600; }
       plugins: [endLabels]
     });
   }
+  function renderBar(V) {
+    document.getElementById("sub-bar").textContent = `Цена ${S.price === "disc" ? "со скидкой и корректировкой на отделку" : "по прайсу"}, тыс. ₽/м². Наведите на строку, чтобы увидеть разброс`;
+    document.getElementById("sub-budget").textContent = `Средний бюджет лота ${S.price === "disc" ? "со скидкой и корректировкой на отделку" : "по прайсу"}, млн ₽. Наведите на строку, чтобы увидеть разброс`;
+    renderRank("bar", V); renderRank("area", V); renderRank("budget", V);
+  }
 
-  function areaKey(at) { const m = String(at).match(/(\d+)/); return m ? +m[1] : 999; }
   function renderLine(V) {
     kill("line");
     const all = V.own.concat(V.compAll);
@@ -688,7 +736,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
   document.getElementById("method").innerHTML = [
     `<div><b>Источник.</b> Google-таблица «Копия Алиса: план, дцо, прайс»: лист «Конкуренты рабочая» (${nf0.format(ROWS.length)} лотов, только квартиры) и состав конкурентов по каждому проекту с листа «справочник индексов». Выгрузка 02.10.2026, цены актуальны на ${actualDates.map(ru).join(" и ")}.</div>`,
     `<div><b>Цена со скидкой и отделкой</b> берётся из столбца «Цена со скидкой»: прайс, умноженный на коэффициент скидки проекта, плюс корректировка на отделку. В режиме «Прайс» используется цена предложения без скидки.</div>`,
-    `<div><b>Средняя цена м²</b> считается как сумма бюджетов, делённая на сумму площадей (взвешено по площади). Мин., макс. и медиана считаются по ценам м² отдельных лотов. Комнатность по данным Объектива, площадь сводная.</div>`,
+    `<div><b>Средняя цена м²</b> считается как сумма бюджетов, делённая на сумму площадей (взвешено по площади). Мин., макс. и медиана считаются по ценам м² отдельных лотов. Комнатность по данным Объектива, площадь сводная. Интервалы площади в фильтре взяты из столбца «Тип площади».</div>`,
     `<div><b>Срок в продаже</b> — дни от даты появления лота в продаже до даты актуальности цены.</div>`
   ].join("");
 
