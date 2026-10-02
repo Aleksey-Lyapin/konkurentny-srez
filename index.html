@@ -28,6 +28,7 @@
   --comp: #BFD4E8;
   --comp-pt: rgba(108,141,175,.42);
   --band: rgba(108,141,175,.16);
+  --range: #355E8E;
   --w1: #FEF3F3; --w2: #FBDADC; --w3: #F6B4B9;
   --c1: #EDF6FF; --c2: #D8E6F4; --c3: #BFD4E8;
   --r1: #BFD4E8; --r2: #6C8DAF; --r3: #3E6690; --r4: #1D4166; --r5: #002346;
@@ -102,11 +103,20 @@ button:focus-visible, input:focus-visible, summary:focus-visible, th:focus-visib
 .kpi .k-sub .d { font-weight: 600; color: var(--ink); white-space: nowrap; }
 .kpi.own .k-val { color: var(--own); }
 
-.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-@media (max-width: 1000px) { .grid { grid-template-columns: minmax(0, 1fr); } }
-.card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px 24px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
-@media (max-width: 520px) { .card { padding: 18px 16px; } }
+.grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; }
+.card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px 24px; min-width: 0; display: flex; flex-direction: column; gap: 12px; grid-column: 1 / -1; }
+.card.third { grid-column: span 2; }
+.card.half { grid-column: span 3; }
 .card.full { grid-column: 1 / -1; }
+@media (max-width: 1180px) { .card.third { grid-column: 1 / -1; } }
+@media (max-width: 1000px) { .card.half { grid-column: 1 / -1; } }
+@media (max-width: 520px) { .card { padding: 18px 16px; } }
+.card.third { padding: 20px 18px; }
+.card-head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
+.seg-sm button { font-size: 12px; padding: 5px 11px; }
+.insight { margin: 0; font-size: 13px; color: var(--ink); background: var(--bg); border-radius: 12px; padding: 9px 14px; }
+.insight:empty { display: none; }
+.insight b { font-weight: 600; }
 .card h2 { font-family: var(--font-display); font-size: 16px; font-weight: 600; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
 .card .sub { font-size: 13px; color: var(--muted); margin: -4px 0 0; }
 .chart-box { position: relative; width: 100%; }
@@ -182,26 +192,64 @@ footer.method b { color: var(--ink); font-weight: 600; }
   <section class="kpis" id="kpis" aria-label="Ключевые показатели"></section>
 
   <section class="grid">
-    <article class="card">
+    <article class="card third">
       <h2>Средняя цена м² по проектам</h2>
       <p class="sub" id="sub-bar"></p>
-      <div class="chart-box" id="box-bar"><canvas id="ch-bar"></canvas></div>
+      <div class="chart-box" id="box-bar"><canvas></canvas></div>
     </article>
-    <article class="card">
-      <h2>Цена м² по диапазонам площади</h2>
-      <p class="sub">Наш проект против среднего по конкурентам; серая полоса показывает разброс средних по проектам-конкурентам</p>
-      <div class="chart-box" style="height:340px"><canvas id="ch-line"></canvas></div>
-    </article>
-    <article class="card">
+    <article class="card third">
       <h2>Средняя площадь по проектам</h2>
-      <p class="sub">Средняя площадь лота в продаже, м². Наведите на строку, чтобы увидеть разброс</p>
-      <div class="chart-box" id="box-area"><canvas id="ch-area"></canvas></div>
+      <p class="sub">Средняя площадь лота в продаже, м²</p>
+      <div class="chart-box" id="box-area"><canvas></canvas></div>
     </article>
-    <article class="card">
+    <article class="card third">
       <h2>Средний бюджет покупки по проектам</h2>
       <p class="sub" id="sub-budget"></p>
-      <div class="chart-box" id="box-budget"><canvas id="ch-budget"></canvas></div>
+      <div class="chart-box" id="box-budget"><canvas></canvas></div>
     </article>
+
+    <article class="card full">
+      <h2>Экспозиция: стоимость лотов по проектам</h2>
+      <p class="sub" id="sub-range"></p>
+      <div class="chart-box" id="box-range"><canvas></canvas></div>
+    </article>
+
+    <article class="card half">
+      <h2>Цена против готовности и срока сдачи</h2>
+      <p class="sub">Каждая точка — корпус: готовность по ЕИСЖС и средняя цена м². Ромб — сданный дом, круг — строящийся. Размер точки зависит от числа лотов</p>
+      <p class="insight" id="ins-ready"></p>
+      <div class="chart-box" style="height:400px"><canvas id="ch-ready"></canvas></div>
+    </article>
+    <article class="card half">
+      <div class="card-head"><h2>Премия за этаж</h2><div class="seg seg-sm" id="f-floor"></div></div>
+      <p class="sub" id="sub-floor"></p>
+      <p class="insight" id="ins-floor"></p>
+      <div class="chart-box" style="height:400px"><canvas id="ch-floor"></canvas></div>
+    </article>
+
+    <article class="card half">
+      <h2>Структура предложения</h2>
+      <p class="sub">Доля студий, 1к, 2к и 3к+ в остатках проекта, %</p>
+      <div class="chart-box" id="box-mix"><canvas></canvas></div>
+    </article>
+    <article class="card half">
+      <h2>Гистограмма бюджетов</h2>
+      <p class="sub" id="sub-hist"></p>
+      <p class="insight" id="ins-hist"></p>
+      <div class="chart-box" style="height:420px"><canvas id="ch-hist"></canvas></div>
+    </article>
+
+    <article class="card half">
+      <h2>Цена м² по диапазонам площади</h2>
+      <p class="sub">Наш проект против среднего по конкурентам; серая полоса показывает разброс средних по проектам-конкурентам</p>
+      <div class="chart-box" style="height:380px"><canvas id="ch-line"></canvas></div>
+    </article>
+    <article class="card half">
+      <h2>Площадь и бюджет лотов</h2>
+      <p class="sub">Каждая точка — лот в продаже. Наведите, чтобы увидеть проект и параметры</p>
+      <div class="chart-box" style="height:380px"><canvas id="ch-scatter"></canvas></div>
+    </article>
+
     <article class="card full">
       <h2>Цена м² по комнатности</h2>
       <p class="sub">Средняя цена м², тыс. ₽, и число лотов. Отклонение у конкурентов считается от нашего проекта в той же комнатности</p>
@@ -212,11 +260,6 @@ footer.method b { color: var(--ink); font-weight: 600; }
         <span><span class="sw" style="background:var(--w3)"></span>дороже на 10 % и больше</span>
       </div>
       <div class="tbl-wrap"><table id="tbl-matrix"></table></div>
-    </article>
-    <article class="card full">
-      <h2>Площадь и бюджет лотов</h2>
-      <p class="sub">Каждая точка — лот в продаже. Наведите, чтобы увидеть проект и параметры</p>
-      <div class="chart-box" style="height:400px"><canvas id="ch-scatter"></canvas></div>
     </article>
   </section>
 
@@ -273,6 +316,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     g: GROUPS[initialG] ? initialG : (GROUPS[store.get("cs.g")] ? store.get("cs.g") : "alisa"),
     price: store.get("cs.price") === "list" ? "list" : "disc",
     sort: ["ppm", "area", "budget", "name"].includes(store.get("cs.sort")) ? store.get("cs.sort") : "ppm",
+    floor: store.get("cs.floor") === "abs" ? "abs" : "idx",
     rooms: null, finish: null, cls: null, stage: "all", at: null, comps: null,
     projSort: { key: "ppm", asc: false }, lotSort: { key: "ppm", asc: true }, lotLimit: 50
   };
@@ -482,6 +526,13 @@ footer.method b { color: var(--ink); font-weight: 600; }
     const g = SORT_GET[S.sort]; return g(b.s) - g(a.s);
   }
   function orderItems(items) { return items.sort(byOrder); }
+  // перенос длинного названия на две строки, чтобы подписи помещались в узкой карточке
+  function wrapLabel(p, max) {
+    if (p.length <= max) return [p];
+    const words = p.split(" "); const lines = [""];
+    words.forEach(w => { const cur = lines[lines.length - 1]; if (cur && (cur + " " + w).length > max && lines.length < 2) lines.push(w); else lines[lines.length - 1] = cur ? cur + " " + w : w; });
+    return lines.map(l => l.length > max + 6 ? l.slice(0, max + 4) + "…" : l);
+  }
   function renderRank(key, V) {
     const cfg = RANKS[key];
     kill(key);
@@ -491,7 +542,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     if (V.sComp) items.push({ p: "Среднее по конкурентам", s: V.sComp, mkt: true });
     orderItems(items);
     const box = document.getElementById(cfg.box);
-    box.style.height = Math.max(160, items.length * 30 + 40) + "px";
+    box.style.height = Math.max(160, items.length * (items.some(i => wrapLabel(i.p, 18).length > 1) ? 36 : 30) + 40) + "px";
     if (!items.length) { box.innerHTML = `<div class="empty">Нет лотов при выбранных фильтрах</div>`; return; }
     if (!box.querySelector("canvas")) box.innerHTML = `<canvas></canvas>`;
     const B = baseOpts();
@@ -500,7 +551,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     charts[key] = new Chart(box.querySelector("canvas"), {
       type: "bar",
       data: {
-        labels: items.map(i => i.p.length > 34 ? i.p.slice(0, 32) + "…" : i.p),
+        labels: items.map(i => wrapLabel(i.p, 18)),
         datasets: [{ data: items.map(i => cfg.get(i.s)), backgroundColor: items.map(i => i.own ? own : i.mkt ? mkt : comp), borderRadius: { topRight: 4, bottomRight: 4 }, borderSkipped: "start", barPercentage: .78, categoryPercentage: .9 }]
       },
       options: Object.assign({}, B, {
@@ -535,6 +586,333 @@ footer.method b { color: var(--ink); font-weight: 600; }
     renderRank("bar", V); renderRank("area", V); renderRank("budget", V);
   }
 
+  // ---------- общие помощники для новых диаграмм ----------
+  const EMPTY = `<div class="empty">Нет лотов при выбранных фильтрах</div>`;
+  const shortName = p => p.length > 30 ? p.slice(0, 28) + "…" : p;
+  const priceMode = () => S.price === "disc" ? "со скидкой и корректировкой на отделку" : "по прайсу";
+  // наш проект первым, конкуренты в порядке выбранной сортировки
+  function projectItems(V) {
+    const comps = Object.entries(V.compsByP).filter(([, l]) => l.length).map(([p, l]) => ({ p, list: l, s: stats(l) })).sort(byOrder);
+    return (V.own.length ? [{ p: V.G.own, list: V.own, s: V.sOwn, own: true }] : []).concat(comps);
+  }
+  function canvasIn(box) { if (!box.querySelector("canvas")) box.innerHTML = "<canvas></canvas>"; return box.querySelector("canvas"); }
+  const yTicksBold = (B, items) => ({ color: B.ink2, font: ctx => ({ weight: items[ctx.index] && items[ctx.index].own ? "700" : "400" }) });
+
+  // ---------- экспозиция: диапазон бюджетов ----------
+  function renderRange(V) {
+    kill("range");
+    const items = projectItems(V);
+    const box = document.getElementById("box-range");
+    document.getElementById("sub-range").textContent = `От самого дешёвого до самого дорогого лота в продаже, млн ₽, цена ${priceMode()}. Наведите на строку, чтобы увидеть медиану и средний бюджет`;
+    box.style.height = Math.max(160, items.length * 32 + 50) + "px";
+    if (!items.length) { box.innerHTML = EMPTY; return; }
+    const B = baseOpts();
+    const own = cssv("--own"), rng = cssv("--range");
+    const rangeLabels = {
+      id: "rangeLabels",
+      afterDatasetsDraw(chart) {
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.font = `500 12px ${Chart.defaults.font.family}`;
+        ctx.fillStyle = B.ink2; ctx.textBaseline = "middle";
+        chart.getDatasetMeta(0).data.forEach((bar, i) => {
+          const [lo, hi] = chart.data.datasets[0].data[i];
+          const x0 = Math.min(bar.x, bar.base), x1 = Math.max(bar.x, bar.base);
+          ctx.textAlign = "right"; ctx.fillText(nf1.format(lo), x0 - 6, bar.y);
+          ctx.textAlign = "left"; ctx.fillText(nf1.format(hi), x1 + 6, bar.y);
+        });
+        ctx.restore();
+      }
+    };
+    charts.range = new Chart(canvasIn(box), {
+      type: "bar",
+      data: {
+        labels: items.map(i => shortName(i.p)),
+        datasets: [{ data: items.map(i => [i.s.bMin / 1e6, i.s.bMax / 1e6]), backgroundColor: items.map(i => i.own ? own : rng), borderRadius: 4, borderSkipped: false, barPercentage: .78, categoryPercentage: .9 }]
+      },
+      options: Object.assign({}, B, {
+        indexAxis: "y", layout: { padding: { right: 44 } },
+        scales: {
+          x: { min: 0, grid: { color: B.grid }, border: { display: false }, ticks: { callback: v => nf0.format(v) }, title: { display: true, text: "млн ₽", color: B.muted } },
+          y: { grid: { display: false }, border: { color: B.grid }, ticks: yTicksBold(B, items) }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: Object.assign({}, B.plugins.tooltip, { displayColors: false, callbacks: {
+            title: c => items[c[0].dataIndex].p,
+            label: c => { const s = items[c.dataIndex].s; return [`От ${mln(s.bMin)} до ${mln(s.bMax)} млн ₽`, `Медиана: ${mln(s.bMed)} млн ₽`, `Средний бюджет: ${mln(s.budget)} млн ₽`, `Лотов: ${nf0.format(s.n)}`]; }
+          } })
+        }
+      }),
+      plugins: [rangeLabels]
+    });
+  }
+
+  // ---------- цена против готовности ----------
+  function wls(pts) {
+    let sw = 0, sx = 0, sy = 0;
+    pts.forEach(p => { sw += p.w; sx += p.w * p.x; sy += p.w * p.y; });
+    if (!sw) return null;
+    const mx = sx / sw, my = sy / sw;
+    let sxx = 0, sxy = 0;
+    pts.forEach(p => { sxx += p.w * (p.x - mx) ** 2; sxy += p.w * (p.x - mx) * (p.y - my); });
+    if (!sxx || new Set(pts.map(p => p.x)).size < 3) return null;
+    const b = sxy / sxx;
+    return { a: my - b * mx, b };
+  }
+  function renderReady(V) {
+    kill("ready");
+    const groups = {};
+    const add = (r, own) => { const key = r.p + "|" + r.k; (groups[key] = groups[key] || { p: r.p, k: r.k, own, list: [] }).list.push(r); };
+    V.own.forEach(r => add(r, true)); V.compAll.forEach(r => add(r, false));
+    const pts = Object.values(groups).map(g => {
+      const rd = g.list.map(r => r.ready).filter(x => x != null);
+      const built = g.list.every(r => r.st === "сдан");
+      const ready = rd.length ? rd.reduce((a, b) => a + b, 0) / rd.length : (built ? 100 : null);
+      const plans = uniq(g.list.map(r => r.plan)).sort();
+      return Object.assign(g, { s: stats(g.list), ready, built, plan: plans[plans.length - 1] });
+    }).filter(g => g.ready != null);
+    const ins = document.getElementById("ins-ready");
+    if (!pts.length) { ins.innerHTML = ""; return; }
+    const maxN = Math.max(...pts.map(p => p.s.n));
+    const rad = p => 4 + 8 * Math.sqrt(p.s.n / maxN);
+    const B = baseOpts();
+    const own = cssv("--own"), rng = cssv("--range"), surface = cssv("--surface"), muted = cssv("--muted");
+    const ds = (label, filt, color, style) => {
+      const list = pts.filter(filt);
+      return { label, data: list.map(p => ({ x: p.ready, y: p.s.ppm, g: p })), backgroundColor: color, borderColor: surface, borderWidth: 1.5, pointStyle: style, pointRadius: list.map(rad), pointHoverRadius: list.map(p => rad(p) + 2) };
+    };
+    const compPts = pts.filter(p => !p.own);
+    const fit = wls(compPts.map(p => ({ x: p.ready, y: p.s.ppm, w: p.s.n })));
+    const sets = [
+      ds(`${V.G.label} · строится`, p => p.own && !p.built, own, "circle"),
+      ds(`${V.G.label} · сдан`, p => p.own && p.built, own, "rectRot"),
+      ds("Конкуренты · строятся", p => !p.own && !p.built, rng, "circle"),
+      ds("Конкуренты · сданы", p => !p.own && p.built, rng, "rectRot")
+    ].filter(d => d.data.length);
+    if (fit) {
+      const xs = compPts.map(p => p.ready), x0 = Math.min(...xs), x1 = Math.max(...xs);
+      sets.push({ type: "line", label: "Тренд по конкурентам", data: [{ x: x0, y: fit.a + fit.b * x0 }, { x: x1, y: fit.a + fit.b * x1 }], borderColor: muted, borderDash: [6, 5], borderWidth: 1.5, pointRadius: 0, pointHitRadius: 0, fill: false });
+    }
+    charts.ready = new Chart(document.getElementById("ch-ready"), {
+      type: "scatter",
+      data: { datasets: sets },
+      options: Object.assign({}, B, {
+        scales: {
+          x: { min: 0, max: 106, grid: { color: B.grid }, border: { display: false }, ticks: { stepSize: 10, callback: v => v <= 100 ? v + " %" : "" }, title: { display: true, text: "Строительная готовность", color: B.muted } },
+          y: { grid: { color: B.grid }, border: { display: false }, ticks: { callback: v => nf0.format(v / 1000) }, title: { display: true, text: "тыс. ₽/м²", color: B.muted } }
+        },
+        plugins: {
+          legend: B.plugins.legend,
+          tooltip: Object.assign({}, B.plugins.tooltip, {
+            filter: it => it.raw && it.raw.g,
+            callbacks: {
+              title: c => { const g = c[0].raw.g; return `${g.p} · корпус ${g.k}`; },
+              label: c => { const g = c.raw.g; return [`Готовность: ${nf0.format(g.ready)} %, ${g.built ? "сдан" : "строится"}`, `Ввод по плану: ${quarter(g.plan)}`, `Цена м²: ${th(g.s.ppm)} тыс. ₽`, `Лотов: ${nf0.format(g.s.n)}`]; }
+            }
+          })
+        }
+      })
+    });
+    // выводы
+    const parts = [];
+    if (fit) {
+      const d10 = fit.b * 10;
+      parts.push(`У конкурентов каждые 10 п.п. готовности дают в среднем <b>${d10 >= 0 ? "+" : "−"}${th(Math.abs(d10))} тыс. ₽/м²</b>`);
+    }
+    const sb = stats(V.compAll.filter(r => r.st === "сдан")), sc = stats(V.compAll.filter(r => r.st !== "сдан"));
+    if (sb && sc) parts.push(`сданные дома конкурентов стоят <b>${th(sb.ppm)}</b> тыс. ₽/м² против ${th(sc.ppm)} у строящихся (<b>${pct(sb.ppm / sc.ppm - 1)}</b>)`);
+    if (fit && V.own.length) {
+      const rd = V.own.map(r => r.ready).filter(x => x != null);
+      if (rd.length) {
+        const x = rd.reduce((a, b) => a + b, 0) / rd.length, exp = fit.a + fit.b * x;
+        parts.push(`${esc(V.G.label)} при готовности ${nf0.format(x)} % стоит <b>${pct(V.sOwn.ppm / exp - 1)}</b> к тренду`);
+      }
+    }
+    ins.innerHTML = parts.length ? parts.join("; ") + "." : "";
+  }
+
+  // ---------- премия за этаж ----------
+  const FLOOR_GROUPS = [[1, 1, "1"], [2, 3, "2–3"], [4, 6, "4–6"], [7, 9, "7–9"], [10, 12, "10–12"], [13, 16, "13–16"], [17, 20, "17–20"], [21, 25, "21–25"], [26, 999, "26+"]];
+  const floorGroup = f => FLOOR_GROUPS.findIndex(([a, b]) => f >= a && f <= b);
+  // отклонение цены м² группы этажей от средней по проекту; для конкурентов — среднее по проектам, взвешенное по лотам
+  function floorIndex(lists) {
+    const acc = FLOOR_GROUPS.map(() => ({ w: 0, v: 0 }));
+    lists.forEach(L => {
+      const base = stats(L); if (!base) return;
+      FLOOR_GROUPS.forEach((g, i) => {
+        const s = stats(L.filter(r => floorGroup(r.floor) === i));
+        if (s) { acc[i].w += s.n; acc[i].v += s.n * (s.ppm / base.ppm - 1); }
+      });
+    });
+    return acc.map(a => a.w ? { v: a.v / a.w, n: a.w } : null);
+  }
+  function floorAbs(list) { return FLOOR_GROUPS.map((g, i) => { const s = stats(list.filter(r => floorGroup(r.floor) === i)); return s ? { v: s.ppm, n: s.n } : null; }); }
+  function renderFloor(V) {
+    kill("floor");
+    segGroup("f-floor", [["idx", "% к средней"], ["abs", "₽/м²"]], S.floor, v => { S.floor = v; store.set("cs.floor", v); });
+    const idx = S.floor === "idx";
+    document.getElementById("sub-floor").textContent = idx
+      ? "Отклонение цены м² на группе этажей от средней цены м² своего проекта. У конкурентов — среднее отклонение по их проектам, взвешенное по числу лотов"
+      : "Средняя цена м² по группам этажей, тыс. ₽. У конкурентов смешаны проекты разной этажности, поэтому для оценки премии точнее режим «% к средней»";
+    const ownS = idx ? floorIndex([V.own]) : floorAbs(V.own);
+    const compS = idx ? floorIndex(Object.values(V.compsByP).filter(l => l.length)) : floorAbs(V.compAll);
+    const keep = FLOOR_GROUPS.map((g, i) => ownS[i] || compS[i]);
+    const labels = FLOOR_GROUPS.filter((g, i) => keep[i]).map(g => g[2]);
+    const pick = arr => arr.filter((x, i) => keep[i]);
+    const o = pick(ownS), c = pick(compS);
+    const B = baseOpts();
+    const own = cssv("--own"), mkt = cssv("--market"), surface = cssv("--surface");
+    const fmtV = v => idx ? pct(v) : th(v) + " тыс. ₽/м²";
+    charts.floor = new Chart(document.getElementById("ch-floor"), {
+      type: "line",
+      data: { labels, datasets: [
+        { label: "Конкуренты", data: c.map(x => x ? x.v : null), borderColor: mkt, backgroundColor: mkt, borderWidth: 2, pointRadius: 3.5, pointHoverRadius: 5, pointBorderColor: surface, pointBorderWidth: 2, cubicInterpolationMode: "monotone", spanGaps: true },
+        { label: V.G.label, data: o.map(x => x ? x.v : null), borderColor: own, backgroundColor: own, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6, pointBorderColor: surface, pointBorderWidth: 2, cubicInterpolationMode: "monotone", spanGaps: true }
+      ] },
+      options: Object.assign({}, B, {
+        interaction: { mode: "index", intersect: false },
+        scales: {
+          x: { grid: { display: false }, border: { color: B.grid }, title: { display: true, text: "Этаж", color: B.muted } },
+          y: { grid: { color: ctx => idx && ctx.tick && ctx.tick.value === 0 ? cssv("--line-strong") : B.grid, lineWidth: ctx => idx && ctx.tick && ctx.tick.value === 0 ? 1.5 : 1 }, border: { display: false },
+            ticks: { callback: v => idx ? (v > 0 ? "+" : v < 0 ? "−" : "") + nf0.format(Math.abs(v * 100)) + " %" : nf0.format(v / 1000) },
+            title: { display: true, text: idx ? "к средней цене м² проекта" : "тыс. ₽/м²", color: B.muted } }
+        },
+        plugins: {
+          legend: B.plugins.legend,
+          tooltip: Object.assign({}, B.plugins.tooltip, { filter: it => it.raw != null, callbacks: {
+            title: c2 => `Этажи ${c2[0].label}`,
+            label: c2 => { const src = c2.datasetIndex === 1 ? o : c; const x = src[c2.dataIndex]; return `${c2.dataset.label}: ${fmtV(x.v)} (${x.n} лот.)`; }
+          } })
+        }
+      })
+    });
+    // выводы: первый этаж и верхняя группа относительно средней
+    const parts = [];
+    const oi = floorIndex([V.own]), ci = floorIndex(Object.values(V.compsByP).filter(l => l.length));
+    const topIdx = arr => { for (let i = arr.length - 1; i >= 0; i--) if (arr[i] && arr[i].n >= 3) return i; return -1; };
+    if (oi[0] || ci[0]) parts.push(`Первый этаж к средней цене м²: у нас ${oi[0] ? "<b>" + pct(oi[0].v) + "</b>" : "нет лотов"}, у конкурентов ${ci[0] ? "<b>" + pct(ci[0].v) + "</b>" : "нет лотов"}`);
+    const ot = topIdx(oi), ct = topIdx(ci);
+    if (ot > 0) parts.push(`верхние этажи у нас (${FLOOR_GROUPS[ot][2]}) <b>${pct(oi[ot].v)}</b>`);
+    if (ct > 0) parts.push(`у конкурентов (${FLOOR_GROUPS[ct][2]}) <b>${pct(ci[ct].v)}</b>`);
+    document.getElementById("ins-floor").innerHTML = parts.length ? parts.join("; ") + "." : "";
+  }
+
+  // ---------- структура предложения (100 %) ----------
+  const MIX = [["студия", "Студии", r => r.rooms === "студия"], ["1", "1к", r => r.rooms === "1"], ["2", "2к", r => r.rooms === "2"], ["3+", "3к+", r => r.rooms === "3" || r.rooms === "4+"]];
+  function renderMix(V) {
+    kill("mix");
+    const items = projectItems(V);
+    const box = document.getElementById("box-mix");
+    box.style.height = Math.max(160, items.length * 30 + 70) + "px";
+    if (!items.length) { box.innerHTML = EMPTY; return; }
+    const B = baseOpts();
+    const cols = ["--r1", "--r2", "--r3", "--r5"].map(cssv), surface = cssv("--surface");
+    const counts = items.map(i => MIX.map(m => i.list.filter(m[2]).length));
+    const segLabels = {
+      id: "segLabels",
+      afterDatasetsDraw(chart) {
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.font = `500 11px ${Chart.defaults.font.family}`;
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        chart.data.datasets.forEach((d, di) => {
+          const meta = chart.getDatasetMeta(di); if (meta.hidden) return;
+          meta.data.forEach((bar, i) => {
+            const v = d.data[i]; const w = Math.abs(bar.x - bar.base);
+            if (!v || w < 30) return;
+            ctx.fillStyle = di >= 2 ? "#FFFFFF" : B.ink;
+            ctx.fillText(nf0.format(v) + "%", (bar.x + bar.base) / 2, bar.y);
+          });
+        });
+        ctx.restore();
+      }
+    };
+    charts.mix = new Chart(canvasIn(box), {
+      type: "bar",
+      data: {
+        labels: items.map(i => shortName(i.p)),
+        datasets: MIX.map((m, mi) => ({ label: m[1], data: counts.map(cn => { const n = cn.reduce((a, b) => a + b, 0); return n ? cn[mi] / n * 100 : 0; }), backgroundColor: cols[mi], borderColor: surface, borderWidth: { right: 2, left: 0, top: 0, bottom: 0 }, borderSkipped: false, barPercentage: .8, categoryPercentage: .9 }))
+      },
+      options: Object.assign({}, B, {
+        indexAxis: "y",
+        scales: {
+          x: { stacked: true, min: 0, max: 100, grid: { color: B.grid }, border: { display: false }, ticks: { callback: v => v + " %" } },
+          y: { stacked: true, grid: { display: false }, border: { color: B.grid }, ticks: yTicksBold(B, items) }
+        },
+        plugins: {
+          legend: Object.assign({}, B.plugins.legend, { labels: Object.assign({}, B.plugins.legend.labels, { usePointStyle: false, boxWidth: 12, boxHeight: 12 }) }),
+          tooltip: Object.assign({}, B.plugins.tooltip, { callbacks: {
+            title: c => items[c[0].dataIndex].p,
+            label: c => `${c.dataset.label}: ${nf1.format(c.raw)} % (${counts[c.dataIndex][c.datasetIndex]} лот.)`
+          } })
+        }
+      }),
+      plugins: [segLabels]
+    });
+  }
+
+  // ---------- гистограмма бюджетов ----------
+  function renderHist(V) {
+    kill("hist");
+    const ins = document.getElementById("ins-hist");
+    document.getElementById("sub-hist").textContent = `Доля лотов в каждом интервале бюджета с шагом 1 млн ₽, цена ${priceMode()}. У нас — от наших лотов, у конкурентов — от всех их лотов. Розовым отмечены интервалы, где у конкурентов от 3 лотов, а у нас ни одного`;
+    const all = V.own.concat(V.compAll);
+    if (!all.length) { ins.innerHTML = ""; return; }
+    const mlnOf = r => budget(r) / 1e6;
+    const lo = Math.floor(Math.min(...all.map(mlnOf)));
+    const hiRaw = Math.ceil(Math.max(...all.map(mlnOf)));
+    const hi = Math.min(hiRaw, lo + 25);
+    const nb = Math.max(1, hi - lo);
+    const bin = r => Math.min(nb - 1, Math.floor(mlnOf(r) - lo));
+    const labels = Array.from({ length: nb }, (_, i) => i === nb - 1 && hiRaw > hi ? `${lo + i}+` : `${lo + i}–${lo + i + 1}`);
+    const oc = Array(nb).fill(0), cc = Array(nb).fill(0);
+    V.own.forEach(r => oc[bin(r)]++); V.compAll.forEach(r => cc[bin(r)]++);
+    const on = V.own.length, cn = V.compAll.length;
+    const niche = cc.map((c, i) => on > 0 && c >= 3 && oc[i] === 0);
+    const B = baseOpts();
+    const own = cssv("--own"), rng = cssv("--range"), nicheC = cssv("--w1");
+    const nicheBands = {
+      id: "nicheBands",
+      beforeDatasetsDraw(chart) {
+        const { ctx, chartArea, scales } = chart;
+        const step = scales.x.getPixelForValue(1) - scales.x.getPixelForValue(0);
+        ctx.save(); ctx.fillStyle = nicheC;
+        niche.forEach((n, i) => { if (!n) return; const x = scales.x.getPixelForValue(i); ctx.fillRect(x - step / 2, chartArea.top, step, chartArea.bottom - chartArea.top); });
+        ctx.restore();
+      }
+    };
+    charts.hist = new Chart(document.getElementById("ch-hist"), {
+      type: "bar",
+      data: { labels, datasets: [
+        { label: "Конкуренты", data: cc.map(c => cn ? c / cn * 100 : 0), backgroundColor: rng, borderRadius: { topLeft: 3, topRight: 3 }, borderSkipped: "start", barPercentage: .9, categoryPercentage: .8 },
+        { label: V.G.label, data: oc.map(c => on ? c / on * 100 : 0), backgroundColor: own, borderRadius: { topLeft: 3, topRight: 3 }, borderSkipped: "start", barPercentage: .9, categoryPercentage: .8 }
+      ] },
+      options: Object.assign({}, B, {
+        interaction: { mode: "index", intersect: false },
+        scales: {
+          x: { grid: { display: false }, border: { color: B.grid }, ticks: { maxRotation: 60, minRotation: 45, autoSkip: false, font: { size: 11 } }, title: { display: true, text: "Бюджет, млн ₽", color: B.muted } },
+          y: { beginAtZero: true, grid: { color: B.grid }, border: { display: false }, ticks: { callback: v => nf0.format(v) + " %" }, title: { display: true, text: "доля лотов", color: B.muted } }
+        },
+        plugins: {
+          legend: B.plugins.legend,
+          tooltip: Object.assign({}, B.plugins.tooltip, { callbacks: {
+            title: c => `${c[0].label} млн ₽${niche[c[0].dataIndex] ? " · у нас нет лотов" : ""}`,
+            label: c => { const cnt = c.datasetIndex === 1 ? oc[c.dataIndex] : cc[c.dataIndex]; return `${c.dataset.label}: ${nf1.format(c.raw)} % (${cnt} лот.)`; }
+          } })
+        }
+      }),
+      plugins: [nicheBands]
+    });
+    // ниши: склеиваем соседние интервалы
+    const runs = [];
+    niche.forEach((n, i) => { if (!n) return; const last = runs[runs.length - 1]; if (last && last.to === i - 1) { last.to = i; last.n += cc[i]; } else runs.push({ from: i, to: i, n: cc[i] }); });
+    const runLabel = r => { const a = lo + r.from, b = lo + r.to + 1; return r.to === nb - 1 && hiRaw > hi ? `от ${a} млн ₽` : `${a}–${b} млн ₽`; };
+    ins.innerHTML = !on ? "" : runs.length
+      ? `Ниши без наших лотов: ${runs.map(r => `<b>${runLabel(r)}</b> (${r.n} лот. у конкурентов)`).join(", ")}.`
+      : "Во всех интервалах бюджета, где у конкурентов от 3 лотов, у нас тоже есть предложение.";
+  }
+
   function renderLine(V) {
     kill("line");
     const all = V.own.concat(V.compAll);
@@ -553,8 +931,8 @@ footer.method b { color: var(--ink); font-weight: 600; }
         datasets: [
           { label: "Мин. среди конкурентов", data: lo, borderWidth: 0, pointRadius: 0, pointHitRadius: 0, fill: false, backgroundColor: band, borderColor: "transparent" },
           { label: "Разброс конкурентов", data: hi, borderWidth: 0, pointRadius: 0, pointHitRadius: 0, fill: "-1", backgroundColor: band, borderColor: "transparent" },
-          { label: "Среднее по конкурентам", data: mktS, borderColor: mkt, backgroundColor: mkt, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, pointBorderColor: surface, pointBorderWidth: 2, tension: .25, spanGaps: true },
-          { label: V.G.label, data: ownS, borderColor: own, backgroundColor: own, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6, pointBorderColor: surface, pointBorderWidth: 2, tension: .25, spanGaps: true }
+          { label: "Среднее по конкурентам", data: mktS, borderColor: mkt, backgroundColor: mkt, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, pointBorderColor: surface, pointBorderWidth: 2, cubicInterpolationMode: "monotone", spanGaps: true },
+          { label: V.G.label, data: ownS, borderColor: own, backgroundColor: own, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6, pointBorderColor: surface, pointBorderWidth: 2, cubicInterpolationMode: "monotone", spanGaps: true }
         ]
       },
       options: Object.assign({}, B, {
@@ -663,7 +1041,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     renderTabs(); renderFilters();
     if (keepDropdown) dd.open = wasOpen;
     const V = view();
-    renderNote(V); renderKpis(V); renderBar(V); renderLine(V); renderScatter(V); renderMatrix(V);
+    renderNote(V); renderKpis(V); renderBar(V); renderRange(V); renderReady(V); renderFloor(V); renderMix(V); renderHist(V); renderLine(V); renderScatter(V); renderMatrix(V);
   }
   resetFilters();
   if (typeof Chart === "undefined") {
