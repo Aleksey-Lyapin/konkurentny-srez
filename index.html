@@ -145,7 +145,35 @@ tr.own-row td:first-child { box-shadow: inset 3px 0 0 var(--own); color: var(--o
 #tbl-matrix tr.own-row td, #tbl-matrix tbody tr.own-row:hover td { background: var(--ink); color: #FFFFFF; border-bottom-color: var(--ink); }
 #tbl-matrix tr.own-row td .sm { color: rgba(255,255,255,.72); }
 #tbl-matrix tr.own-row td:first-child { color: #FFFFFF; box-shadow: inset 4px 0 0 var(--own); }
-tr.mkt-row td { font-weight: 600; border-top: 1px solid var(--line-strong); }
+/* наши лоты и аналоги */
+.ltabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin: -6px 0 2px; flex-wrap: wrap; }
+.ltab { appearance: none; border: 0; background: none; font: inherit; font-family: var(--font-display); font-size: 15px; font-weight: 600; color: var(--muted); padding: 8px 4px 12px; margin-right: 18px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.ltab:hover { color: var(--ink); }
+.ltab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--own); }
+.an-controls { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; }
+.checks { display: flex; gap: 16px; padding-block: 5px; }
+.check { display: flex; gap: 7px; align-items: center; font-size: 13px; color: var(--ink); cursor: pointer; }
+.check input { accent-color: var(--own); width: 16px; height: 16px; }
+.pill { display: inline-flex; gap: 4px; align-items: center; padding: 3px 10px; border-radius: 100px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.pill.dear { background: var(--w1); color: var(--own); box-shadow: inset 0 0 0 1px var(--w3); }
+.pill.cheap { background: var(--surface-2); color: var(--r3); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.pill.par { background: var(--bg); color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line); }
+.pill.na { background: var(--bg); color: var(--muted); font-weight: 500; }
+#tbl-an tr.clk { cursor: pointer; }
+#tbl-an tr.clk:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+#tbl-an tr.clk.open td { background: var(--surface-2); }
+#tbl-an .caret { display: inline-block; width: 14px; color: var(--muted); font-size: 11px; }
+#tbl-an td.ours-v { color: var(--own); font-weight: 600; }
+#tbl-an tr.subrow > td { background: var(--bg); padding: 12px 14px 16px; }
+#tbl-an tbody tr.subrow:hover > td { background: var(--bg); }
+.anbox { display: flex; flex-direction: column; gap: 10px; white-space: normal; }
+.an-per { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--ink-2); align-items: center; }
+.an-p { display: inline-flex; gap: 5px; align-items: center; white-space: nowrap; }
+.an-p b { color: var(--ink); }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+table.an-sub { background: var(--surface); border-radius: 12px; overflow: hidden; }
+table.an-sub th, table.an-sub td { padding: 7px 10px; font-size: 12.5px; }tr.mkt-row td { font-weight: 600; border-top: 1px solid var(--line-strong); }
 tr.mkt-row td:first-child { box-shadow: inset 3px 0 0 var(--market); }
 td .sm { display: block; font-size: 11px; color: var(--muted); font-weight: 400; }
 td.cell { min-width: 84px; }
@@ -270,6 +298,21 @@ footer.method b { color: var(--ink); font-weight: 600; }
       </div>
       <div class="tbl-wrap"><table id="tbl-matrix"></table></div>
     </article>
+    <article class="card full" id="card-an">
+      <div class="ltabs" role="tablist">
+        <button class="ltab" role="tab" id="tab-ours" aria-selected="true" type="button">Наши лоты и аналоги</button>
+        <button class="ltab" role="tab" id="tab-all" aria-selected="false" type="button">Все лоты выборки</button>
+      </div>
+      <div class="an-controls" id="an-controls">
+        <div class="fgroup"><span class="flabel">Аналог: площадь</span><div class="seg seg-sm" id="an-tol"></div></div>
+        <div class="fgroup"><span class="flabel">Аналог: также совпадает</span>
+          <div class="checks"><label class="check"><input type="checkbox" id="an-fin"> отделка</label><label class="check"><input type="checkbox" id="an-stage"> стадия</label></div>
+        </div>
+      </div>
+      <p class="sub" id="an-hint" style="margin:0"></p>
+      <p class="insight" id="an-ins"></p>
+      <div class="tbl-wrap"><table id="tbl-an"></table></div>
+    </article>
   </section>
 
   <footer class="method" id="method"></footer>
@@ -326,6 +369,8 @@ footer.method b { color: var(--ink); font-weight: 600; }
     price: store.get("cs.price") === "list" ? "list" : "disc",
     sort: ["ppm", "area", "budget", "name"].includes(store.get("cs.sort")) ? store.get("cs.sort") : "ppm",
     floor: store.get("cs.floor") === "abs" ? "abs" : "idx",
+    anTol: [5, 10, 15, 20].includes(+store.get("cs.anTol")) ? +store.get("cs.anTol") : 10, anFin: false, anStage: false, lotTab: "ours", openLot: null,
+    sortOurs: { k: "delta", asc: false }, sortAll: { k: "ppm", asc: false },
     rooms: null, finish: null, cls: null, stage: "all", at: null, comps: null,
     projSort: { key: "ppm", asc: false }, lotSort: { key: "ppm", asc: true }, lotLimit: 50
   };
@@ -379,7 +424,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     el.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => {
       S.g = b.dataset.g; store.set("cs.g", S.g);
       try { history.replaceState(null, "", "#" + S.g); } catch (e) {}
-      resetFilters(); renderAll();
+      S.openLot = null; resetFilters(); renderAll();
     }));
   }
 
@@ -1044,13 +1089,103 @@ footer.method b { color: var(--ink); font-weight: 600; }
     `<div><b>Средняя цена м²</b> считается как сумма бюджетов, делённая на сумму площадей (взвешено по площади). Мин., макс. и медиана считаются по ценам м² отдельных лотов. Комнатность по данным Объектива, площадь сводная. Интервалы площади в фильтре взяты из столбца «Тип площади».</div>`
   ].join("");
 
+  // ---------- наши лоты и аналоги ----------
+  const PAR = 0.02; // паритет ±2 %
+  const fp = d => (Math.abs(d) < 0.0005 ? "" : d > 0 ? "+" : "−") + nf1.format(Math.abs(d * 100)) + " %";
+  function pill(d, word) {
+    if (d == null || !isFinite(d)) return `<span class="pill na">нет аналогов</span>`;
+    const cls = d > PAR ? "dear" : d < -PAR ? "cheap" : "par";
+    const w = d > PAR ? "дороже" : d < -PAR ? "дешевле" : "паритет";
+    const ic = d > PAR ? "▲" : d < -PAR ? "▼" : "≈";
+    return `<span class="pill ${cls}">${ic} ${fp(d)}${word === false ? "" : " " + w}</span>`;
+  }
+  function medianOf(xs) { if (!xs.length) return null; const s = xs.slice().sort((a, b) => a - b); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
+  function analogsOf(o, comp) {
+    const t = S.anTol / 100;
+    return comp.filter(c => c.rooms === o.rooms && Math.abs(c.area - o.area) / o.area <= t && (!S.anFin || c.fl === o.fl) && (!S.anStage || c.st === o.st));
+  }
+  const lotId = r => r.p + "|" + r.k + "|" + r.lot + "|" + r.floor + "|" + r.area;
+  const stageWord = st => st === "сдан" ? "сдан" : "строится";
+  function sortBy(rows, s, get) {
+    rows.sort((a, b) => {
+      const x = get(a, s.k), y = get(b, s.k);
+      if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1;
+      const r = typeof x === "string" ? x.localeCompare(y, "ru", { numeric: true }) : x - y;
+      return s.asc ? r : -r;
+    });
+  }
+  const thS = (k, label, s, cls) => `<th class="sortable${cls ? " " + cls : ""}${s.k === k ? " sorted" + (s.asc ? " asc" : "") : ""}" data-k="${k}" tabindex="0">${label}</th>`;
+
+  function renderAnalogs(V) {
+    segGroup("an-tol", [["5", "±5 %"], ["10", "±10 %"], ["15", "±15 %"], ["20", "±20 %"]], String(S.anTol), v => { S.anTol = +v; S.openLot = null; store.set("cs.anTol", v); });
+    document.getElementById("an-fin").checked = S.anFin;
+    document.getElementById("an-stage").checked = S.anStage;
+    document.getElementById("tab-ours").setAttribute("aria-selected", S.lotTab === "ours");
+    document.getElementById("tab-all").setAttribute("aria-selected", S.lotTab === "all");
+    document.getElementById("an-controls").hidden = S.lotTab !== "ours";
+    const tbl = document.getElementById("tbl-an"), hint = document.getElementById("an-hint"), ins = document.getElementById("an-ins");
+    const comp = V.compAll;
+
+    if (S.lotTab === "ours") {
+      const rows = V.own.map(l => { const an = analogsOf(l, comp); const med = an.length ? medianOf(an.map(ppmOf)) : null; return { l, an, med, delta: med ? ppmOf(l) / med - 1 : null }; });
+      const s = S.sortOurs;
+      sortBy(rows, s, (x, k) => ({ corp: x.l.k + " " + x.l.lot, floor: x.l.floor, r: ROOMS.indexOf(x.l.rooms), area: x.l.area, fin: x.l.fl, price: budget(x.l), ppm: ppmOf(x.l), n: x.an.length, med: x.med, delta: x.delta }[k]));
+      const cond = `та же комнатность, площадь ±${S.anTol} %${S.anFin ? ", та же отделка" : ""}${S.anStage ? ", та же стадия" : ""}`;
+      hint.textContent = rows.length ? `Нажмите на лот, чтобы увидеть аналоги конкурентов (${cond}).` : "Наших лотов под выбранные фильтры нет.";
+      const withAn = rows.filter(x => x.delta != null);
+      if (withAn.length) {
+        const md = medianOf(withAn.map(x => x.delta));
+        const dear = withAn.filter(x => x.delta > PAR).length, cheap = withAn.filter(x => x.delta < -PAR).length;
+        ins.innerHTML = `Сопоставимое отклонение (медиана разниц по нашим лотам): ${pill(md)}. Дороже аналогов <b>${dear}</b> из ${withAn.length} лотов, в паритете <b>${withAn.length - dear - cheap}</b>, дешевле <b>${cheap}</b>${rows.length > withAn.length ? `; без аналогов ${rows.length - withAn.length}` : ""}.`;
+      } else ins.innerHTML = "";
+      let h = `<thead><tr>${thS("corp", "Корпус / лот", s, "l")}${thS("floor", "Этаж", s)}${thS("r", "Комн.", s)}${thS("area", "Площадь, м²", s)}${thS("fin", "Отделка", s, "l")}${thS("price", "Цена, млн ₽", s)}${thS("ppm", "Наша цена м²", s)}${thS("n", "Аналогов", s)}${thS("med", "Медиана аналогов, м²", s)}${thS("delta", "Разница", s)}</tr></thead><tbody>`;
+      rows.forEach(x => {
+        const id = lotId(x.l), open = S.openLot === id;
+        h += `<tr class="clk${open ? " open" : ""}" data-id="${esc(id)}" tabindex="0" aria-expanded="${open}"><td class="l"><span class="caret">${open ? "▾" : "▸"}</span>${esc(x.l.k)} · №${esc(x.l.lot)}</td><td>${x.l.floor ?? "—"}</td><td>${ROOM_LABEL[x.l.rooms] || esc(x.l.rooms)}</td><td>${nf1.format(x.l.area)}</td><td class="l">${esc(x.l.fl || "—")}</td><td>${nf1.format(budget(x.l) / 1e6)}</td><td class="ours-v">${nf0.format(ppmOf(x.l))}</td><td>${x.an.length}</td><td>${x.med ? nf0.format(x.med) : "—"}</td><td>${pill(x.delta)}</td></tr>`;
+        if (open) {
+          const an = x.an.slice().sort((a, b) => Math.abs(a.area - x.l.area) - Math.abs(b.area - x.l.area));
+          const byP = {}; an.forEach(a => (byP[a.p] = byP[a.p] || []).push(a));
+          const per = Object.entries(byP).map(([p, ls]) => ({ p, v: medianOf(ls.map(ppmOf)), n: ls.length })).sort((a, b) => b.v - a.v);
+          h += `<tr class="subrow"><td colspan="10"><div class="anbox">${an.length ? `
+            <div class="an-per">По проектам (медиана ₽/м² аналогов): ${per.map(q => `<span class="an-p">${esc(q.p)} <b>${nf0.format(q.v)}</b> <span class="muted">(${q.n})</span> ${pill(ppmOf(x.l) / q.v - 1, false)}</span>`).join("")}</div>
+            <div class="tbl-wrap"><table class="an-sub"><thead><tr><th class="l">Проект</th><th class="l">Корпус</th><th>Этаж</th><th>Площадь, м²</th><th class="l">Отделка</th><th class="l">Стадия</th><th>Ввод</th><th>Цена, млн ₽</th><th>₽/м²</th><th>Мы vs лот</th></tr></thead><tbody>
+            ${an.slice(0, 25).map(a => `<tr><td class="l">${esc(a.p)}</td><td class="l">${esc(a.k)}</td><td>${a.floor ?? "—"}</td><td>${nf1.format(a.area)}</td><td class="l">${esc(a.fl || "—")}</td><td class="l">${stageWord(a.st)}</td><td>${quarter(a.plan)}</td><td>${nf1.format(budget(a) / 1e6)}</td><td>${nf0.format(ppmOf(a))}</td><td>${pill(ppmOf(x.l) / ppmOf(a) - 1, false)}</td></tr>`).join("")}</tbody></table></div>
+            ${an.length > 25 ? `<div class="muted small">Показаны 25 ближайших по площади из ${an.length}.</div>` : ""}`
+            : `<div class="muted">Аналогов нет. Увеличьте допуск по площади или снимите условия совпадения.</div>`}</div></td></tr>`;
+        }
+      });
+      tbl.innerHTML = h + "</tbody>";
+      tbl.onclick = e => {
+        const t = e.target.closest("th.sortable");
+        if (t) { const k = t.dataset.k; S.sortOurs = { k, asc: S.sortOurs.k === k ? !S.sortOurs.asc : false }; renderAnalogs(view()); return; }
+        const r = e.target.closest("tr.clk");
+        if (r) { S.openLot = S.openLot === r.dataset.id ? null : r.dataset.id; renderAnalogs(view()); }
+      };
+    } else {
+      ins.innerHTML = "";
+      const all = V.own.concat(comp);
+      const s = S.sortAll;
+      sortBy(all, s, (l, k) => ({ proj: l.p, corp: l.k, floor: l.floor, r: ROOMS.indexOf(l.rooms), area: l.area, fin: l.fl, st: l.st, dl: l.plan, price: budget(l), ppm: ppmOf(l) }[k]));
+      const lim = 400;
+      hint.textContent = `${nf0.format(all.length)} лот. в выборке${all.length > lim ? `, показаны первые ${lim} по текущей сортировке` : ""}. Наши лоты выделены.`;
+      tbl.innerHTML = `<thead><tr>${thS("proj", "Проект", s, "l")}${thS("corp", "Корпус", s, "l")}${thS("floor", "Этаж", s)}${thS("r", "Комн.", s)}${thS("area", "Площадь, м²", s)}${thS("fin", "Отделка", s, "l")}${thS("st", "Стадия", s, "l")}${thS("dl", "Ввод", s)}${thS("price", "Цена, млн ₽", s)}${thS("ppm", "₽/м²", s)}</tr></thead><tbody>`
+        + all.slice(0, lim).map(l => `<tr class="${l.p === V.G.own ? "own-row" : ""}"><td class="l">${esc(l.p)}</td><td class="l">${esc(l.k)}</td><td>${l.floor ?? "—"}</td><td>${ROOM_LABEL[l.rooms] || esc(l.rooms)}</td><td>${nf1.format(l.area)}</td><td class="l">${esc(l.fl || "—")}</td><td class="l">${stageWord(l.st)}</td><td>${quarter(l.plan)}</td><td>${nf1.format(budget(l) / 1e6)}</td><td>${nf0.format(ppmOf(l))}</td></tr>`).join("") + "</tbody>";
+      tbl.onclick = e => { const t = e.target.closest("th.sortable"); if (!t) return; const k = t.dataset.k; S.sortAll = { k, asc: S.sortAll.k === k ? !S.sortAll.asc : false }; renderAnalogs(view()); };
+    }
+    tbl.onkeydown = e => { if ((e.key === "Enter" || e.key === " ") && (e.target.matches("tr.clk") || e.target.matches("th.sortable"))) { e.preventDefault(); e.target.click(); } };
+  }
+  document.getElementById("an-fin").addEventListener("change", e => { S.anFin = e.target.checked; S.openLot = null; renderAnalogs(view()); });
+  document.getElementById("an-stage").addEventListener("change", e => { S.anStage = e.target.checked; S.openLot = null; renderAnalogs(view()); });
+  document.getElementById("tab-ours").addEventListener("click", () => { S.lotTab = "ours"; renderAnalogs(view()); });
+  document.getElementById("tab-all").addEventListener("click", () => { S.lotTab = "all"; renderAnalogs(view()); });
+
   // ---------- render ----------
   function renderAll(keepDropdown) {
     const dd = document.getElementById("f-comps"); const wasOpen = dd.open;
     renderTabs(); renderFilters();
     if (keepDropdown) dd.open = wasOpen;
     const V = view();
-    renderNote(V); renderKpis(V); renderBar(V); renderRange(V); renderReady(V); renderFloor(V); renderMix(V); renderHist(V); renderLine(V); renderScatter(V); renderMatrix(V);
+    renderNote(V); renderKpis(V); renderBar(V); renderRange(V); renderReady(V); renderFloor(V); renderMix(V); renderHist(V); renderLine(V); renderScatter(V); renderMatrix(V); renderAnalogs(V);
   }
   resetFilters();
   if (typeof Chart === "undefined") {
