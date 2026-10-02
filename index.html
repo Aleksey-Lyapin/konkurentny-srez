@@ -216,6 +216,9 @@ footer.method b { color: var(--ink); font-weight: 600; }
     <div class="fgroup"><span class="flabel">Площадь, м²</span>
       <details class="dd" id="f-area"><summary id="f-area-sum">Все</summary><div class="dd-panel" id="f-area-panel"></div></details>
     </div>
+    <div class="fgroup"><span class="flabel">Этаж</span>
+      <details class="dd" id="f-fl"><summary id="f-fl-sum">Все</summary><div class="dd-panel" id="f-fl-panel"></div></details>
+    </div>
     <div class="fgroup"><span class="flabel">Конкуренты</span>
       <details class="dd" id="f-comps"><summary id="f-comps-sum">Все</summary><div class="dd-panel" id="f-comps-panel"></div></details>
     </div>
@@ -358,7 +361,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     floor: store.get("cs.floor") === "abs" ? "abs" : "idx",
     anTol: [5, 10, 15, 20].includes(+store.get("cs.anTol")) ? +store.get("cs.anTol") : 10, anFin: false, anStage: false, lotTab: "ours", openLot: null,
     sortOurs: { k: "delta", asc: false }, sortAll: { k: "ppm", asc: false },
-    rooms: null, finish: null, cls: null, stage: "all", at: null, comps: null,
+    rooms: null, finish: null, cls: null, stage: "all", at: null, floors: null, comps: null,
     projSort: { key: "ppm", asc: false }, lotSort: { key: "ppm", asc: true }, lotLimit: 50
   };
   const budget = r => S.price === "disc" ? r.disc : r.price;
@@ -375,6 +378,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     S.cls = new Set(uniq(rows.map(r => r.cls)));
     S.stage = "all";
     S.at = new Set(areaTypes(rows));
+    S.floors = new Set(floorsOf(rows));
     S.comps = new Set(GROUPS[S.g].comps.filter(p => byProject[p]));
     S.lotLimit = 50;
   }
@@ -382,11 +386,15 @@ footer.method b { color: var(--ink); font-weight: 600; }
   // Интервалы площади из столбца «Тип площади» (AG), по возрастанию; «вне диапазона» в конце
   function areaKey(at) { const m = String(at).match(/(\d+)/); return m ? +m[1] : 9999; }
   function areaTypes(rows) { return uniq(rows.map(r => r.at)).sort((a, b) => areaKey(a) - areaKey(b)); }
+  function floorsOf(rows) { return Array.from(new Set(rows.map(r => r.floor).filter(f => f != null))).sort((a, b) => a - b); }
+  // 1, 2, 3, 5, 7, 8 -> «1–3, 5, 7–8»
+  function compressFloors(fs) { const out = []; let i = 0; while (i < fs.length) { let j = i; while (j + 1 < fs.length && fs[j + 1] === fs[j] + 1) j++; out.push(j > i ? fs[i] + "–" + fs[j] : String(fs[i])); i = j + 1; } return out.join(", "); }
 
   function passes(r) {
     return S.rooms.has(r.rooms) && (S.finish.has(r.fl) || !r.fl) && S.cls.has(r.cls)
       && (S.stage === "all" || r.st === S.stage)
-      && (S.at.has(r.at) || !r.at);
+      && (S.at.has(r.at) || !r.at)
+      && (r.floor == null || S.floors.has(r.floor));
   }
 
   // ---------- stats ----------
@@ -478,6 +486,26 @@ footer.method b { color: var(--ink); font-weight: 600; }
       : !picked.length ? "Не выбрано"
       : picked.length <= 2 ? picked.join(", ")
       : `${picked[0]} … ${picked[picked.length - 1]} (${picked.length})`;
+
+    // этажи
+    const fls = floorsOf(rows);
+    const fpanel = document.getElementById("f-fl-panel");
+    fpanel.innerHTML = `<div class="dd-actions"><button class="link-btn" type="button" data-a="all">Выбрать все</button><button class="link-btn" type="button" data-a="none">Снять все</button></div>` +
+      fls.map(f => `<label><input type="checkbox" data-fl="${f}" ${S.floors.has(f) ? "checked" : ""}>${f} этаж<span class="n">${rows.filter(r => r.floor === f).length}</span></label>`).join("");
+    fpanel.querySelectorAll("input[data-fl]").forEach(cb => cb.addEventListener("change", () => {
+      const f = +cb.dataset.fl;
+      if (cb.checked) S.floors.add(f); else S.floors.delete(f);
+      S.openLot = null; renderAll();
+    }));
+    fpanel.querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => {
+      S.floors = b.dataset.a === "all" ? new Set(fls) : new Set();
+      S.openLot = null; renderAll();
+    }));
+    const fpicked = fls.filter(f => S.floors.has(f));
+    const fsum = compressFloors(fpicked);
+    document.getElementById("f-fl-sum").textContent = fpicked.length === fls.length ? `Все (${fls.length})`
+      : !fpicked.length ? "Не выбрано"
+      : fsum.length <= 16 ? fsum : `${fpicked.length} этаж.`;
   }
 
   document.getElementById("f-reset").addEventListener("click", () => { resetFilters(); renderAll(); });
