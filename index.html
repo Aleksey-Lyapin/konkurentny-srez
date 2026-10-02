@@ -251,12 +251,6 @@ footer.method b { color: var(--ink); font-weight: 600; }
     </article>
 
     <article class="card half">
-      <h2>Цена против готовности и срока сдачи</h2>
-      <p class="sub">Каждая точка — корпус: готовность по ЕИСЖС и средняя цена м². Ромб — сданный дом, круг — строящийся. Размер точки зависит от числа лотов</p>
-      <p class="insight" id="ins-ready"></p>
-      <div class="chart-box" style="height:400px"><canvas id="ch-ready"></canvas></div>
-    </article>
-    <article class="card half">
       <div class="card-head"><h2>Премия за этаж</h2><div class="seg seg-sm" id="f-floor"></div></div>
       <p class="sub" id="sub-floor"></p>
       <p class="insight" id="ins-floor"></p>
@@ -268,13 +262,6 @@ footer.method b { color: var(--ink); font-weight: 600; }
       <p class="sub">Доля студий, 1к, 2к и 3к+ в остатках проекта, %</p>
       <div class="chart-box" id="box-mix"><canvas></canvas></div>
     </article>
-    <article class="card half">
-      <h2>Гистограмма бюджетов</h2>
-      <p class="sub" id="sub-hist"></p>
-      <p class="insight" id="ins-hist"></p>
-      <div class="chart-box" style="height:420px"><canvas id="ch-hist"></canvas></div>
-    </article>
-
     <article class="card half">
       <h2>Цена м² по диапазонам площади</h2>
       <p class="sub">Наш проект против среднего по конкурентам; серая полоса показывает разброс средних по проектам-конкурентам</p>
@@ -702,90 +689,6 @@ footer.method b { color: var(--ink); font-weight: 600; }
     });
   }
 
-  // ---------- цена против готовности ----------
-  function wls(pts) {
-    let sw = 0, sx = 0, sy = 0;
-    pts.forEach(p => { sw += p.w; sx += p.w * p.x; sy += p.w * p.y; });
-    if (!sw) return null;
-    const mx = sx / sw, my = sy / sw;
-    let sxx = 0, sxy = 0;
-    pts.forEach(p => { sxx += p.w * (p.x - mx) ** 2; sxy += p.w * (p.x - mx) * (p.y - my); });
-    if (!sxx || new Set(pts.map(p => p.x)).size < 3) return null;
-    const b = sxy / sxx;
-    return { a: my - b * mx, b };
-  }
-  function renderReady(V) {
-    kill("ready");
-    const groups = {};
-    const add = (r, own) => { const key = r.p + "|" + r.k; (groups[key] = groups[key] || { p: r.p, k: r.k, own, list: [] }).list.push(r); };
-    V.own.forEach(r => add(r, true)); V.compAll.forEach(r => add(r, false));
-    const pts = Object.values(groups).map(g => {
-      const rd = g.list.map(r => r.ready).filter(x => x != null);
-      const built = g.list.every(r => r.st === "сдан");
-      const ready = rd.length ? rd.reduce((a, b) => a + b, 0) / rd.length : (built ? 100 : null);
-      const plans = uniq(g.list.map(r => r.plan)).sort();
-      return Object.assign(g, { s: stats(g.list), ready, built, plan: plans[plans.length - 1] });
-    }).filter(g => g.ready != null);
-    const ins = document.getElementById("ins-ready");
-    if (!pts.length) { ins.innerHTML = ""; return; }
-    const maxN = Math.max(...pts.map(p => p.s.n));
-    const rad = p => 4 + 8 * Math.sqrt(p.s.n / maxN);
-    const B = baseOpts();
-    const own = cssv("--own"), rng = cssv("--range"), surface = cssv("--surface"), muted = cssv("--muted");
-    const ds = (label, filt, color, style) => {
-      const list = pts.filter(filt);
-      return { label, data: list.map(p => ({ x: p.ready, y: p.s.ppm, g: p })), backgroundColor: color, borderColor: surface, borderWidth: 1.5, pointStyle: style, pointRadius: list.map(rad), pointHoverRadius: list.map(p => rad(p) + 2) };
-    };
-    const compPts = pts.filter(p => !p.own);
-    const fit = wls(compPts.map(p => ({ x: p.ready, y: p.s.ppm, w: p.s.n })));
-    const sets = [
-      ds(`${V.G.label} · строится`, p => p.own && !p.built, own, "circle"),
-      ds(`${V.G.label} · сдан`, p => p.own && p.built, own, "rectRot"),
-      ds("Конкуренты · строятся", p => !p.own && !p.built, rng, "circle"),
-      ds("Конкуренты · сданы", p => !p.own && p.built, rng, "rectRot")
-    ].filter(d => d.data.length);
-    if (fit) {
-      const xs = compPts.map(p => p.ready), x0 = Math.min(...xs), x1 = Math.max(...xs);
-      sets.push({ type: "line", label: "Тренд по конкурентам", data: [{ x: x0, y: fit.a + fit.b * x0 }, { x: x1, y: fit.a + fit.b * x1 }], borderColor: muted, borderDash: [6, 5], borderWidth: 1.5, pointRadius: 0, pointHitRadius: 0, fill: false });
-    }
-    charts.ready = new Chart(document.getElementById("ch-ready"), {
-      type: "scatter",
-      data: { datasets: sets },
-      options: Object.assign({}, B, {
-        scales: {
-          x: { min: 0, max: 106, grid: { color: B.grid }, border: { display: false }, ticks: { stepSize: 10, callback: v => v <= 100 ? v + " %" : "" }, title: { display: true, text: "Строительная готовность", color: B.muted } },
-          y: { grid: { color: B.grid }, border: { display: false }, ticks: { callback: v => nf0.format(v / 1000) }, title: { display: true, text: "тыс. ₽/м²", color: B.muted } }
-        },
-        plugins: {
-          legend: B.plugins.legend,
-          tooltip: Object.assign({}, B.plugins.tooltip, {
-            filter: it => it.raw && it.raw.g,
-            callbacks: {
-              title: c => { const g = c[0].raw.g; return `${g.p} · корпус ${g.k}`; },
-              label: c => { const g = c.raw.g; return [`Готовность: ${nf0.format(g.ready)} %, ${g.built ? "сдан" : "строится"}`, `Ввод по плану: ${quarter(g.plan)}`, `Цена м²: ${th(g.s.ppm)} тыс. ₽`, `Лотов: ${nf0.format(g.s.n)}`]; }
-            }
-          })
-        }
-      })
-    });
-    // выводы
-    const parts = [];
-    if (fit) {
-      const d10 = fit.b * 10;
-      parts.push(`У конкурентов каждые 10 п.п. готовности дают в среднем <b>${d10 >= 0 ? "+" : "−"}${th(Math.abs(d10))} тыс. ₽/м²</b>`);
-    }
-    const sb = stats(V.compAll.filter(r => r.st === "сдан")), sc = stats(V.compAll.filter(r => r.st !== "сдан"));
-    if (sb && sc) parts.push(`сданные дома конкурентов стоят <b>${th(sb.ppm)}</b> тыс. ₽/м² против ${th(sc.ppm)} у строящихся (<b>${pct(sb.ppm / sc.ppm - 1)}</b>)`);
-    if (fit && V.own.length) {
-      const rd = V.own.map(r => r.ready).filter(x => x != null);
-      if (rd.length) {
-        const x = rd.reduce((a, b) => a + b, 0) / rd.length, exp = fit.a + fit.b * x;
-        parts.push(`${esc(V.G.label)} при готовности ${nf0.format(x)} % стоит <b>${pct(V.sOwn.ppm / exp - 1)}</b> к тренду`);
-      }
-    }
-    ins.innerHTML = parts.length ? parts.join("; ") + "." : "";
-  }
-
   // ---------- премия за этаж ----------
   const FLOOR_GROUPS = [[1, 1, "1"], [2, 3, "2–3"], [4, 6, "4–6"], [7, 9, "7–9"], [10, 12, "10–12"], [13, 16, "13–16"], [17, 20, "17–20"], [21, 25, "21–25"], [26, 999, "26+"]];
   const floorGroup = f => FLOOR_GROUPS.findIndex(([a, b]) => f >= a && f <= b);
@@ -904,67 +807,6 @@ footer.method b { color: var(--ink); font-weight: 600; }
       }),
       plugins: [segLabels]
     });
-  }
-
-  // ---------- гистограмма бюджетов ----------
-  function renderHist(V) {
-    kill("hist");
-    const ins = document.getElementById("ins-hist");
-    document.getElementById("sub-hist").textContent = `Доля лотов в каждом интервале бюджета с шагом 1 млн ₽, цена ${priceMode()}. У нас — от наших лотов, у конкурентов — от всех их лотов. Розовым отмечены интервалы, где у конкурентов от 3 лотов, а у нас ни одного`;
-    const all = V.own.concat(V.compAll);
-    if (!all.length) { ins.innerHTML = ""; return; }
-    const mlnOf = r => budget(r) / 1e6;
-    const lo = Math.floor(Math.min(...all.map(mlnOf)));
-    const hiRaw = Math.ceil(Math.max(...all.map(mlnOf)));
-    const hi = Math.min(hiRaw, lo + 25);
-    const nb = Math.max(1, hi - lo);
-    const bin = r => Math.min(nb - 1, Math.floor(mlnOf(r) - lo));
-    const labels = Array.from({ length: nb }, (_, i) => i === nb - 1 && hiRaw > hi ? `${lo + i}+` : `${lo + i}–${lo + i + 1}`);
-    const oc = Array(nb).fill(0), cc = Array(nb).fill(0);
-    V.own.forEach(r => oc[bin(r)]++); V.compAll.forEach(r => cc[bin(r)]++);
-    const on = V.own.length, cn = V.compAll.length;
-    const niche = cc.map((c, i) => on > 0 && c >= 3 && oc[i] === 0);
-    const B = baseOpts();
-    const own = cssv("--own"), rng = cssv("--range"), nicheC = cssv("--w1");
-    const nicheBands = {
-      id: "nicheBands",
-      beforeDatasetsDraw(chart) {
-        const { ctx, chartArea, scales } = chart;
-        const step = scales.x.getPixelForValue(1) - scales.x.getPixelForValue(0);
-        ctx.save(); ctx.fillStyle = nicheC;
-        niche.forEach((n, i) => { if (!n) return; const x = scales.x.getPixelForValue(i); ctx.fillRect(x - step / 2, chartArea.top, step, chartArea.bottom - chartArea.top); });
-        ctx.restore();
-      }
-    };
-    charts.hist = new Chart(document.getElementById("ch-hist"), {
-      type: "bar",
-      data: { labels, datasets: [
-        { label: "Конкуренты", data: cc.map(c => cn ? c / cn * 100 : 0), backgroundColor: rng, borderRadius: { topLeft: 3, topRight: 3 }, borderSkipped: "start", barPercentage: .9, categoryPercentage: .8 },
-        { label: V.G.label, data: oc.map(c => on ? c / on * 100 : 0), backgroundColor: own, borderRadius: { topLeft: 3, topRight: 3 }, borderSkipped: "start", barPercentage: .9, categoryPercentage: .8 }
-      ] },
-      options: Object.assign({}, B, {
-        interaction: { mode: "index", intersect: false },
-        scales: {
-          x: { grid: { display: false }, border: { color: B.grid }, ticks: { maxRotation: 60, minRotation: 45, autoSkip: false, font: { size: 11 } }, title: { display: true, text: "Бюджет, млн ₽", color: B.muted } },
-          y: { beginAtZero: true, grid: { color: B.grid }, border: { display: false }, ticks: { callback: v => nf0.format(v) + " %" }, title: { display: true, text: "доля лотов", color: B.muted } }
-        },
-        plugins: {
-          legend: B.plugins.legend,
-          tooltip: Object.assign({}, B.plugins.tooltip, { callbacks: {
-            title: c => `${c[0].label} млн ₽${niche[c[0].dataIndex] ? " · у нас нет лотов" : ""}`,
-            label: c => { const cnt = c.datasetIndex === 1 ? oc[c.dataIndex] : cc[c.dataIndex]; return `${c.dataset.label}: ${nf1.format(c.raw)} % (${cnt} лот.)`; }
-          } })
-        }
-      }),
-      plugins: [nicheBands]
-    });
-    // ниши: склеиваем соседние интервалы
-    const runs = [];
-    niche.forEach((n, i) => { if (!n) return; const last = runs[runs.length - 1]; if (last && last.to === i - 1) { last.to = i; last.n += cc[i]; } else runs.push({ from: i, to: i, n: cc[i] }); });
-    const runLabel = r => { const a = lo + r.from, b = lo + r.to + 1; return r.to === nb - 1 && hiRaw > hi ? `от ${a} млн ₽` : `${a}–${b} млн ₽`; };
-    ins.innerHTML = !on ? "" : runs.length
-      ? `Ниши без наших лотов: ${runs.map(r => `<b>${runLabel(r)}</b> (${r.n} лот. у конкурентов)`).join(", ")}.`
-      : "Во всех интервалах бюджета, где у конкурентов от 3 лотов, у нас тоже есть предложение.";
   }
 
   function renderLine(V) {
@@ -1185,7 +1027,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     renderTabs(); renderFilters();
     if (keepDropdown) dd.open = wasOpen;
     const V = view();
-    renderNote(V); renderKpis(V); renderBar(V); renderRange(V); renderReady(V); renderFloor(V); renderMix(V); renderHist(V); renderLine(V); renderScatter(V); renderMatrix(V); renderAnalogs(V);
+    renderNote(V); renderKpis(V); renderBar(V); renderRange(V); renderFloor(V); renderMix(V); renderLine(V); renderScatter(V); renderMatrix(V); renderAnalogs(V);
   }
   resetFilters();
   if (typeof Chart === "undefined") {
