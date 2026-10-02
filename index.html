@@ -946,13 +946,6 @@ footer.method b { color: var(--ink); font-weight: 600; }
     const parts = [];
     if (!V.own.length) parts.push(`<b>${esc(V.G.label)}:</b> нет лотов при выбранных фильтрах, сравнение с нашим проектом недоступно.`);
     else if (V.own.length < 5) parts.push(`<b>${esc(V.G.label)}:</b> в продаже ${V.own.length} ${V.own.length === 1 ? "лот" : "лота"}, средние по проекту опираются на очень малую выборку.`);
-    const staleBy = {};
-    Object.entries(V.compsByP).forEach(([p, l]) => {
-      if (!l.length || !l.every(r => r.actual && r.actual < latest)) return;
-      const d = l.map(r => r.actual).sort().pop();
-      (staleBy[d] = staleBy[d] || []).push(p);
-    });
-    Object.keys(staleBy).sort().reverse().forEach(d => parts.push(`Цены на ${ru(d)}: ${staleBy[d].map(esc).join(", ")}.`));
     document.getElementById("note").innerHTML = parts.join(" ");
     document.getElementById("note").hidden = !parts.length;
   }
