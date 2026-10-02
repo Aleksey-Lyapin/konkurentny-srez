@@ -217,18 +217,6 @@ footer.method b { color: var(--ink); font-weight: 600; }
       <p class="sub">Каждая точка — лот в продаже. Наведите, чтобы увидеть проект и параметры</p>
       <div class="chart-box" style="height:400px"><canvas id="ch-scatter"></canvas></div>
     </article>
-    <article class="card full">
-      <h2>Сводка по проектам</h2>
-      <div class="legend-row" id="mix-legend"></div>
-      <div class="tbl-wrap"><table id="tbl-proj"></table></div>
-      <p class="sub" id="missing" style="margin:0"></p>
-    </article>
-    <article class="card full">
-      <h2>Лоты в продаже</h2>
-      <p class="sub" id="sub-lots"></p>
-      <div class="tbl-wrap"><table id="tbl-lots"></table></div>
-      <button class="more" id="lots-more" type="button" hidden>Показать ещё</button>
-    </article>
   </section>
 
   <footer class="method" id="method"></footer>
@@ -632,85 +620,6 @@ footer.method b { color: var(--ink); font-weight: 600; }
     document.getElementById("tbl-matrix").innerHTML = head + `<tbody>${body}</tbody>`;
   }
 
-  function projSummary(p, list) {
-    const s = stats(list);
-    const plans = uniq(list.map(r => r.plan)).sort();
-    const stages = uniq(list.map(r => r.st));
-    const mix = ROOMS.map(x => list.filter(r => r.rooms === x).length);
-    return { p, s, list, dev: uniq(list.map(r => r.dev)).join(", "), dis: uniq(list.map(r => r.dis)).join(", "), cls: uniq(list.map(r => r.cls)).join(", "),
-      stage: stages.join(" / "), planMin: plans[0], planMax: plans[plans.length - 1], korp: uniq(list.map(r => r.k)).length, mix, disc: DISCOUNT[p] };
-  }
-  const PCOLS = [
-    { key: "p", label: "Проект", l: true, get: x => x.p, fmt: x => esc(x.p) },
-    { key: "dev", label: "Девелопер", l: true, get: x => x.dev, fmt: x => esc(x.dev) },
-    { key: "dis", label: "Район", l: true, get: x => x.dis, fmt: x => esc(x.dis) },
-    { key: "cls", label: "Класс", l: true, get: x => x.cls, fmt: x => esc(x.cls) },
-    { key: "stage", label: "Стадия", l: true, get: x => x.stage, fmt: x => esc(x.stage) },
-    { key: "plan", label: "Ввод (план)", l: true, get: x => x.planMax || "", fmt: x => x.planMin === x.planMax ? quarter(x.planMax) : `${quarter(x.planMin)} – ${quarter(x.planMax)}` },
-    { key: "disc", label: "Коэф. скидки", get: x => x.disc ?? 1, fmt: x => x.disc == null ? "—" : nf2.format(x.disc) },
-    { key: "n", label: "Лотов", get: x => x.s.n, fmt: x => nf0.format(x.s.n) },
-    { key: "mix", label: "Структура", l: true, get: x => x.s.n ? x.mix[0] / x.s.n : 0, fmt: x => `<div class="mix" title="${esc(ROOMS.map((r, i) => ROOM_LABEL[r] + ": " + x.mix[i]).join(", "))}">${x.mix.map((m, i) => m ? `<span style="flex:${m};background:var(--r${i + 1})"></span>` : "").join("")}</div>` },
-    { key: "area", label: "Ср. S, м²", get: x => x.s.area, fmt: x => nf1.format(x.s.area) },
-    { key: "budget", label: "Ср. бюджет, млн ₽", get: x => x.s.budget, fmt: x => mln(x.s.budget) },
-    { key: "min", label: "м² мин", get: x => x.s.min, fmt: x => th(x.s.min) },
-    { key: "ppm", label: "м² средн.", get: x => x.s.ppm, fmt: x => `<b>${th(x.s.ppm)}</b>` },
-    { key: "max", label: "м² макс", get: x => x.s.max, fmt: x => th(x.s.max) },
-    { key: "delta", label: "К нашему", get: x => x.delta ?? -Infinity, fmt: x => x.delta == null ? "—" : pct(x.delta) },
-    { key: "expo", label: "Срок в продаже, дн.", get: x => x.s.expo ?? -1, fmt: x => x.s.expo == null ? "—" : nf0.format(x.s.expo) }
-  ];
-  function renderProjects(V) {
-    document.getElementById("mix-legend").innerHTML = "Структура предложения:" + ROOMS.map((r, i) => `<span><span class="sw" style="background:var(--r${i + 1})"></span>${ROOM_LABEL[r]}</span>`).join("") + `<span style="color:var(--muted)">Цены м² в тыс. ₽</span>`;
-    const ownRow = V.own.length ? projSummary(V.G.own, V.own) : null;
-    const comps = Object.entries(V.compsByP).filter(([, l]) => l.length).map(([p, l]) => projSummary(p, l));
-    if (ownRow) comps.forEach(c => c.delta = c.s.ppm / ownRow.s.ppm - 1);
-    const col = PCOLS.find(c => c.key === S.projSort.key) || PCOLS[12];
-    comps.sort((a, b) => { const x = col.get(a), y = col.get(b); const r = typeof x === "string" ? x.localeCompare(y, "ru") : x - y; return S.projSort.asc ? r : -r; });
-    const rows = (ownRow ? [ownRow] : []).concat(comps);
-    const head = `<thead><tr>${PCOLS.map(c => `<th class="sortable${c.l ? " l" : ""}${c.key === S.projSort.key ? " sorted" + (S.projSort.asc ? " asc" : "") : ""}" tabindex="0" data-k="${c.key}">${c.label}</th>`).join("")}</tr></thead>`;
-    const body = rows.map((R, i) => `<tr class="${i === 0 && ownRow ? "own-row" : ""}">${PCOLS.map(c => `<td class="${c.l ? "l" : ""}">${c.fmt(R)}</td>`).join("")}</tr>`).join("");
-    const t = document.getElementById("tbl-proj");
-    t.innerHTML = head + `<tbody>${body || `<tr><td colspan="${PCOLS.length}" class="l">Нет лотов при выбранных фильтрах</td></tr>`}</tbody>`;
-    t.querySelectorAll("th.sortable").forEach(h => {
-      const go = () => { const k = h.dataset.k; S.projSort = { key: k, asc: S.projSort.key === k ? !S.projSort.asc : (PCOLS.find(c => c.key === k).l ? true : false) }; renderProjects(V); };
-      h.addEventListener("click", go); h.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
-    });
-    const missing = V.G.comps.filter(p => !byProject[p]);
-    document.getElementById("missing").textContent = missing.length ? `Нет лотов в выгрузке «Конкуренты рабочая»: ${missing.join(", ")}.` : "";
-  }
-
-  const LCOLS = [
-    { key: "p", label: "Проект", l: true, get: r => r.p, fmt: r => esc(r.p) },
-    { key: "k", label: "Корпус", l: true, get: r => r.k, fmt: r => esc(r.k) },
-    { key: "floor", label: "Этаж", get: r => r.floor ?? 0, fmt: r => r.floor ?? "—" },
-    { key: "lot", label: "№", get: r => +r.lot || 0, fmt: r => esc(r.lot || "—") },
-    { key: "rooms", label: "Комн.", get: r => ROOMS.indexOf(r.rooms), fmt: r => ROOM_LABEL[r.rooms] || esc(r.rooms) },
-    { key: "area", label: "S, м²", get: r => r.area, fmt: r => nf2.format(r.area) },
-    { key: "fl", label: "Отделка", l: true, get: r => r.fl, fmt: r => esc(r.fl || "—") },
-    { key: "price", label: "Прайс, ₽", get: r => r.price, fmt: r => nf0.format(r.price) },
-    { key: "disc", label: "Со скидкой, ₽", get: r => r.disc, fmt: r => nf0.format(r.disc) },
-    { key: "ppm", label: "₽/м²", get: r => ppmOf(r), fmt: r => `<b>${nf0.format(ppmOf(r))}</b>` },
-    { key: "appear", label: "В продаже с", get: r => r.appear || "", fmt: r => ru(r.appear) },
-    { key: "expo", label: "Дней", get: r => r.expo ?? -1, fmt: r => r.expo ?? "—" }
-  ];
-  function renderLots(V) {
-    const list = V.own.concat(V.compAll);
-    const col = LCOLS.find(c => c.key === S.lotSort.key) || LCOLS[9];
-    list.sort((a, b) => { const x = col.get(a), y = col.get(b); const r = typeof x === "string" ? x.localeCompare(y, "ru") : x - y; return S.lotSort.asc ? r : -r; });
-    const shown = list.slice(0, S.lotLimit);
-    document.getElementById("sub-lots").textContent = `${nf0.format(list.length)} лотов по выбранным фильтрам, показано ${nf0.format(shown.length)}. Строки нашего проекта выделены. Сортировка по клику на заголовок`;
-    const head = `<thead><tr>${LCOLS.map(c => `<th class="sortable${c.l ? " l" : ""}${c.key === S.lotSort.key ? " sorted" + (S.lotSort.asc ? " asc" : "") : ""}" tabindex="0" data-k="${c.key}">${c.label}</th>`).join("")}</tr></thead>`;
-    const body = shown.map(r => `<tr class="${r.p === V.G.own ? "own-row" : ""}">${LCOLS.map(c => `<td class="${c.l ? "l" : ""}">${c.fmt(r)}</td>`).join("")}</tr>`).join("");
-    const t = document.getElementById("tbl-lots");
-    t.innerHTML = head + `<tbody>${body}</tbody>`;
-    t.querySelectorAll("th.sortable").forEach(h => {
-      const go = () => { const k = h.dataset.k; S.lotSort = { key: k, asc: S.lotSort.key === k ? !S.lotSort.asc : true }; renderLots(V); };
-      h.addEventListener("click", go); h.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
-    });
-    const more = document.getElementById("lots-more");
-    more.hidden = list.length <= S.lotLimit;
-    more.textContent = `Показать ещё ${Math.min(50, list.length - S.lotLimit)}`;
-  }
-  document.getElementById("lots-more").addEventListener("click", () => { S.lotLimit += 50; renderLots(view()); });
 
   // ---------- header & notes ----------
   const actualDates = uniq(ROWS.map(r => r.actual)).sort();
@@ -733,10 +642,9 @@ footer.method b { color: var(--ink); font-weight: 600; }
   }
 
   document.getElementById("method").innerHTML = [
-    `<div><b>Источник.</b> Google-таблица «Копия Алиса: план, дцо, прайс»: лист «Конкуренты рабочая» (${nf0.format(ROWS.length)} лотов, только квартиры) и состав конкурентов по каждому проекту с листа «справочник индексов». Выгрузка 02.10.2026, цены актуальны на ${actualDates.map(ru).join(" и ")}.</div>`,
+    `<div><b>Источник.</b> Google-таблица «Копия Алиса: план, дцо, прайс»: лист «Конкуренты рабочая» (${nf0.format(ROWS.length)} лотов, только квартиры) и состав конкурентов по каждому проекту с листа «справочник индексов». Выгрузка 02.10.2026, цены актуальны на ${actualDates.length > 1 ? actualDates.slice(0, -1).map(ru).join(", ") + " и " + ru(actualDates[actualDates.length - 1]) : ru(actualDates[0])}.</div>`,
     `<div><b>Цена со скидкой и отделкой</b> берётся из столбца «Цена со скидкой»: прайс, умноженный на коэффициент скидки проекта, плюс корректировка на отделку. В режиме «Прайс» используется цена предложения без скидки.</div>`,
-    `<div><b>Средняя цена м²</b> считается как сумма бюджетов, делённая на сумму площадей (взвешено по площади). Мин., макс. и медиана считаются по ценам м² отдельных лотов. Комнатность по данным Объектива, площадь сводная. Интервалы площади в фильтре взяты из столбца «Тип площади».</div>`,
-    `<div><b>Срок в продаже</b> — дни от даты появления лота в продаже до даты актуальности цены.</div>`
+    `<div><b>Средняя цена м²</b> считается как сумма бюджетов, делённая на сумму площадей (взвешено по площади). Мин., макс. и медиана считаются по ценам м² отдельных лотов. Комнатность по данным Объектива, площадь сводная. Интервалы площади в фильтре взяты из столбца «Тип площади».</div>`
   ].join("");
 
   // ---------- render ----------
@@ -745,7 +653,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     renderTabs(); renderFilters();
     if (keepDropdown) dd.open = wasOpen;
     const V = view();
-    renderNote(V); renderKpis(V); renderBar(V); renderLine(V); renderScatter(V); renderMatrix(V); renderProjects(V); renderLots(V);
+    renderNote(V); renderKpis(V); renderBar(V); renderLine(V); renderScatter(V); renderMatrix(V);
   }
   resetFilters();
   if (typeof Chart === "undefined") {
