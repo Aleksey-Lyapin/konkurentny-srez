@@ -39,6 +39,7 @@
   --radius: 20px;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 14px; line-height: 1.45; margin: 0; }
 .wrap { max-width: 1320px; margin: 0 auto; padding-inline: 20px; padding-block: 0 48px; }
 @media (max-width: 520px) { .wrap { padding-inline: 16px; } }
@@ -140,6 +141,10 @@ td.l, th.l { text-align: left; }
 tbody tr:hover td { background: var(--bg); }
 tr.own-row td, tbody tr.own-row:hover td { background: var(--own-soft); font-weight: 600; }
 tr.own-row td:first-child { box-shadow: inset 3px 0 0 var(--own); color: var(--own); }
+/* в матрице розовый и голубой заняты отклонениями, поэтому наш проект — тёмно-синяя строка */
+#tbl-matrix tr.own-row td, #tbl-matrix tbody tr.own-row:hover td { background: var(--ink); color: #FFFFFF; border-bottom-color: var(--ink); }
+#tbl-matrix tr.own-row td .sm { color: rgba(255,255,255,.72); }
+#tbl-matrix tr.own-row td:first-child { color: #FFFFFF; box-shadow: inset 4px 0 0 var(--own); }
 tr.mkt-row td { font-weight: 600; border-top: 1px solid var(--line-strong); }
 tr.mkt-row td:first-child { box-shadow: inset 3px 0 0 var(--market); }
 td .sm { display: block; font-size: 11px; color: var(--muted); font-weight: 400; }
@@ -257,6 +262,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
       <h2>Цена м² по комнатности</h2>
       <p class="sub">Средняя цена м², тыс. ₽, и число лотов. Отклонение у конкурентов считается от нашего проекта в той же комнатности</p>
       <div class="legend-row">
+        <span><span class="sw" style="background:var(--ink);box-shadow:inset 3px 0 0 var(--own)"></span>наш проект</span>
         <span><span class="sw" style="background:var(--c3)"></span>конкурент дешевле на 10 % и больше</span>
         <span><span class="sw" style="background:var(--c1)"></span>дешевле на 1–5 %</span>
         <span><span class="sw" style="background:var(--w1)"></span>дороже на 1–5 %</span>
