@@ -434,8 +434,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
       { own: true, label: "Средняя цена м² · наш проект", val: o ? th(o.ppm) : "—", unit: "тыс. ₽", sub: o && c ? dTxt(rel(o.ppm, c.ppm), "к среднему по конкурентам", "к среднему по конкурентам") : (o ? "" : "нет лотов при выбранных фильтрах") },
       { label: "Средняя цена м² · конкуренты", val: c ? th(c.ppm) : "—", unit: "тыс. ₽", sub: projAvgs.length ? `по проектам от ${th(Math.min(...projAvgs))} до ${th(Math.max(...projAvgs))} тыс. ₽` : "" },
       { own: true, label: "Средний бюджет · наш проект", val: o ? mln(o.budget) : "—", unit: "млн ₽", sub: c ? `у конкурентов ${mln(c.budget)} млн ₽` + (o ? ` (${pct(rel(o.budget, c.budget))})` : "") : "" },
-      { own: true, label: "Средняя площадь · наш проект", val: o ? nf1.format(o.area) : "—", unit: "м²", sub: c ? `у конкурентов ${nf1.format(c.area)} м²` : "" },
-      { own: true, label: "Средний срок в продаже · наш проект", val: o && o.expo != null ? nf0.format(o.expo) : "—", unit: "дн.", sub: c && c.expo != null ? `у конкурентов ${nf0.format(c.expo)} дн.` : "" }
+      { own: true, label: "Средняя площадь · наш проект", val: o ? nf1.format(o.area) : "—", unit: "м²", sub: c ? `у конкурентов ${nf1.format(c.area)} м²` : "" }
     ];
     document.getElementById("kpis").innerHTML = tiles.map(t =>
       `<div class="kpi${t.own ? " own" : ""}"><span class="k-label">${esc(t.label)}</span><span class="k-val">${t.val}${t.unit && t.val !== "—" ? `<small>${t.unit}</small>` : ""}</span><span class="k-sub">${t.sub || "&nbsp;"}</span></div>`).join("");
