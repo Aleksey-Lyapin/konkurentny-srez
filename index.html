@@ -402,11 +402,6 @@ footer.method b { color: var(--ink); font-weight: 600; }
     </article>
 
     <article class="card full">
-      <div class="card-head"><div><h2>Последние оформленные сделки</h2><p class="sub" style="margin-top:4px">Оперативный просмотр договоров</p></div><a class="link-more" href="#card-dtable" id="last-all">Все сделки</a></div>
-      <div class="tbl-wrap"><table id="tbl-dlast"></table></div>
-    </article>
-
-    <article class="card full">
       <h2>Комнатность</h2>
       <p class="sub">Сделки, средняя площадь, бюджет, цена м² и скидка по типу квартиры</p>
       <div class="tbl-wrap"><table id="tbl-drooms"></table></div>
@@ -1412,14 +1407,15 @@ footer.method b { color: var(--ink); font-weight: 600; }
     { k: "floor", label: "Этаж", get: d => d.floor, fmt: d => d.floor ?? "—" },
     { k: "apt", label: "№ кв.", get: d => +d.apt || 0, fmt: d => esc(d.apt) },
     { k: "rooms", label: "Комн.", get: d => ROOMS.indexOf(roomKey(d.rooms)), fmt: d => ROOM_LABEL[roomKey(d.rooms)] || esc(d.rooms) },
-    { k: "plan", label: "Планировка", l: true, get: d => d.plan, fmt: d => esc(d.plan) },
     { k: "area", label: "S, м²", get: d => d.area, fmt: d => nf2.format(d.area) },
     { k: "list", label: "Прайс, ₽", get: d => d.list, fmt: d => nf0.format(d.list) },
     { k: "price", label: "Договор, ₽", get: d => d.price, fmt: d => `<b>${nf0.format(d.price)}</b>` },
     { k: "ppm", label: "₽/м²", get: d => d.ppm, fmt: d => nf0.format(d.ppm) },
     { k: "discPct", label: "Скидка", get: d => d.discPct, fmt: d => discTxt(d.discPct) },
+    { k: "pay", label: "Оплата", l: true, get: d => d.pay, fmt: d => payPill(d.pay) },
+    { k: "mgr", label: "Менеджер", l: true, get: d => d.mgr, fmt: d => esc(d.mgr || "—") },
     { k: "discFmt", label: "Формат скидки", l: true, get: d => d.discFmt, fmt: d => esc(d.discFmt || "—") },
-    { k: "payHow", label: "Оплата", l: true, get: d => d.payHow, fmt: d => esc(d.payHow || d.pay) },
+    { k: "payHow", label: "Способ покупки", l: true, get: d => d.payHow, fmt: d => esc(d.payHow || d.pay) },
     { k: "bank", label: "Банк", l: true, get: d => d.bank, fmt: d => esc(d.bank || "—") },
     { k: "pv", label: "ПВ", get: d => d.pv, fmt: d => d.pv == null ? "—" : nf0.format(d.pv * 100) + " %" },
     { k: "finish", label: "Отделка", l: true, get: d => d.finish, fmt: d => esc(d.finish === "С отделкой" ? "с отделкой · " + (d.finishDesc || "") : "без отделки") },
@@ -1463,16 +1459,6 @@ footer.method b { color: var(--ink); font-weight: 600; }
     document.getElementById("rank-agent-note").textContent = [sP ? `Через агентства ${sP.n} из ${L.length} сделок, ${nf0.format(sP.rev / dSum(L, d => d.price) * 100)} % выручки` : "", D ? `прямые продажи: ${D.n} сд., ${mln(D.rev)} млн ₽` : ""].filter(Boolean).join("; ") + ".";
   }
   const payPill = p => `<span class="pay-pill ${p === "Ипотека" ? "mort" : p === "Рассрочка" ? "inst" : "cash"}">${esc(p || "—")}</span>`;
-  function renderLastDeals(L) {
-    const rows = L.slice().sort((a, b) => b.month.localeCompare(a.month) || b.idx - a.idx).slice(0, 8);
-    const many = DS.obj === "all";
-    document.getElementById("last-all").textContent = `Все сделки (${L.length})`;
-    document.getElementById("tbl-dlast").innerHTML = !rows.length ? `<tbody><tr><td class="l">Нет сделок</td></tr></tbody>` :
-      `<thead><tr><th class="l">Месяц</th>${many ? '<th class="l">Объект</th>' : ""}<th class="l">Кв. №</th><th class="l">Тип</th><th>Площадь</th><th>Сумма ДДУ</th><th class="l">Оплата</th><th class="l">Менеджер</th></tr></thead><tbody>` +
-      rows.map(d => `<tr><td class="l">${monthLong(d.month)}</td>${many ? `<td class="l">${esc(d.obj)}</td>` : ""}<td class="l"><b>№${esc(d.apt)}</b></td><td class="l">${roomKey(d.rooms) === "студия" ? "Студия" : esc(d.rooms) + "-комн."}</td><td>${nf2.format(d.area)} м²</td><td><b>${nf0.format(d.price)} ₽</b></td><td class="l">${payPill(d.pay)}</td><td class="l">${esc(d.mgr || "—")}</td></tr>`).join("") + "</tbody>";
-  }
-  document.getElementById("last-all").addEventListener("click", e => { e.preventDefault(); document.getElementById("card-dtable").scrollIntoView({ behavior: "smooth", block: "start" }); });
-
   function renderDeals() {
     renderDealsFilters();
     const L = dealsFiltered();
@@ -1481,7 +1467,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     barByMonth("drev", "ch-drev", L, l => dSum(l, d => d.price) / 1e6, v => nf0.format(v), v => nf0.format(v));
     lineByMonth("dppm", "ch-dppm", L, l => dSum(l, d => d.price) / dSum(l, d => d.area), v => th(v) + " тыс. ₽/м²", v => nf0.format(v / 1000));
     lineByMonth("ddisc", "ch-ddisc", L, l => -dSum(l, d => d.disc) / dSum(l, d => d.list), v => nf1.format(v * 100) + " %", v => nf0.format(v * 100) + " %", { beginAtZero: true });
-    renderDiscKinds(L); renderPayHow(L); renderBanks(L); renderManagers(L); renderAgencies(L); renderLastDeals(L); renderRoomsTable(L); renderDealsTable(L);
+    renderDiscKinds(L); renderPayHow(L); renderBanks(L); renderManagers(L); renderAgencies(L); renderRoomsTable(L); renderDealsTable(L);
   }
 
   document.getElementById("nav-deals").addEventListener("click", () => {
