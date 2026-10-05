@@ -68,6 +68,8 @@ h1 { font-family: var(--font-display); font-weight: 600; font-size: 20px; margin
 .period { display: flex; gap: 6px; align-items: center; color: var(--muted); }
 .period select { font: inherit; font-size: 13px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 100px; background: var(--surface); color: var(--ink); cursor: pointer; }
 td.wrap { white-space: normal; min-width: 160px; }
+/* длинный формат скидки переносится по словам */
+#tbl-deals td.fmt-wrap { white-space: normal; min-width: 200px; max-width: 260px; line-height: 1.35; }
 button:focus-visible, input:focus-visible, summary:focus-visible, th:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
 .filters { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: flex-end; margin-top: 20px; padding: 18px 20px; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); }
@@ -1414,7 +1416,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     { k: "discPct", label: "Скидка", get: d => d.discPct, fmt: d => discTxt(d.discPct) },
     { k: "pay", label: "Оплата", l: true, get: d => d.pay, fmt: d => payPill(d.pay) },
     { k: "mgr", label: "Менеджер", l: true, get: d => d.mgr, fmt: d => esc(d.mgr || "—") },
-    { k: "discFmt", label: "Формат скидки", l: true, get: d => d.discFmt, fmt: d => esc(d.discFmt || "—") },
+    { k: "discFmt", label: "Формат скидки", l: true, w: true, get: d => d.discFmt, fmt: d => esc(d.discFmt || "—") },
     { k: "payHow", label: "Способ покупки", l: true, get: d => d.payHow, fmt: d => esc(d.payHow || d.pay) },
     { k: "bank", label: "Банк", l: true, get: d => d.bank, fmt: d => esc(d.bank || "—") },
     { k: "pv", label: "ПВ", get: d => d.pv, fmt: d => d.pv == null ? "—" : nf0.format(d.pv * 100) + " %" },
@@ -1431,7 +1433,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     document.getElementById("sub-dtable").textContent = `${rows.length} сделок по выбранным фильтрам. Сортировка по клику на заголовок`;
     const t = document.getElementById("tbl-deals");
     t.innerHTML = `<thead><tr>${DCOLS.map(c => thS(c.k, c.label, s, c.l ? "l" : "")).join("")}</tr></thead><tbody>` +
-      rows.map(d => `<tr>${DCOLS.map(c => `<td class="${c.l ? "l" : ""}">${c.fmt(d)}</td>`).join("")}</tr>`).join("") + "</tbody>";
+      rows.map(d => `<tr>${DCOLS.map(c => `<td class="${c.l ? "l" : ""}${c.w ? " fmt-wrap" : ""}">${c.fmt(d)}</td>`).join("")}</tr>`).join("") + "</tbody>";
     t.onclick = e => { const h = e.target.closest("th.sortable"); if (!h) return; const k = h.dataset.k; DS.sort = { k, asc: DS.sort.k === k ? !DS.sort.asc : (DCOLS.find(c => c.k === k).l ? true : false) }; renderDealsTable(dealsFiltered()); };
   }
 
