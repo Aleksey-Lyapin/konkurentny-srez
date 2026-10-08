@@ -62,9 +62,11 @@ h1 { font-family: var(--font-display); font-weight: 600; font-size: 20px; margin
 .tab[aria-selected="true"] { background: var(--own); border-color: var(--own); color: #FFFFFF; }
 .tab[aria-selected="true"]:hover { background: var(--own-hover); }
 .tab .cnt { font-size: 12px; opacity: .7; font-variant-numeric: tabular-nums; }
-.nav-btn { margin-left: 28px; appearance: none; font: inherit; font-weight: 600; font-size: 14px; padding: 10px 18px; border-radius: 100px; border: 1.5px solid var(--own); background: var(--surface); color: var(--own); cursor: pointer; white-space: nowrap; transition: background-color .15s, color .15s; }
+.nav { margin-left: 28px; display: flex; flex: none; padding: 3px; gap: 2px; border: 1.5px solid var(--ink); border-radius: 100px; background: var(--surface); }
+.nav-btn { appearance: none; font: inherit; font-weight: 600; font-size: 14px; padding: 8px 16px; border-radius: 100px; border: 0; background: none; color: var(--ink); cursor: pointer; white-space: nowrap; transition: background-color .15s, color .15s; }
 .nav-btn:hover { background: var(--w1); }
-.nav-btn[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #FFFFFF; }
+.nav-btn[aria-pressed="true"] { background: var(--ink); color: #FFFFFF; cursor: default; }
+@media (max-width: 640px) { .brand { flex-wrap: wrap; } .nav { margin-left: 0; } }
 .period { display: flex; gap: 6px; align-items: center; color: var(--muted); }
 .period select { font: inherit; font-size: 13px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 100px; background: var(--surface); color: var(--ink); cursor: pointer; }
 td.wrap { white-space: normal; min-width: 160px; }
@@ -232,7 +234,10 @@ footer.method b { color: var(--ink); font-weight: 600; }
         <span class="eyebrow" id="asof">Екатеринбург</span>
         <h1 id="page-title">Конкурентный срез</h1>
       </div>
-      <button class="nav-btn" id="nav-deals" type="button" aria-pressed="false">Сделки</button>
+      <div class="nav" role="group" aria-label="Раздел">
+        <button class="nav-btn" id="nav-comp" type="button" aria-pressed="true">Предложение</button>
+        <button class="nav-btn" id="nav-deals" type="button" aria-pressed="false">Сделки</button>
+      </div>
     </div>
     <div class="tabs" role="tablist" id="tabs"></div>
   </div>
@@ -1472,11 +1477,12 @@ footer.method b { color: var(--ink); font-weight: 600; }
     renderDiscKinds(L); renderPayHow(L); renderBanks(L); renderManagers(L); renderAgencies(L); renderRoomsTable(L); renderDealsTable(L);
   }
 
-  document.getElementById("nav-deals").addEventListener("click", () => {
-    S.mode = S.mode === "deals" ? "comp" : "deals";
+  [["nav-comp", "comp"], ["nav-deals", "deals"]].forEach(([id, mode]) => document.getElementById(id).addEventListener("click", () => {
+    if (S.mode === mode) return;
+    S.mode = mode;
     try { history.replaceState(null, "", "#" + (S.mode === "deals" ? "deals" + (DS.obj === "all" ? "" : "-" + DS.obj) : S.g)); } catch (e) {}
     window.scrollTo(0, 0); renderAll();
-  });
+  }));
 
   // ---------- автообновление из Google-таблицы ----------
   // Страница при открытии читает опубликованные листы «Конкуренты рабочая» и «справочник индексов».
@@ -1577,8 +1583,8 @@ footer.method b { color: var(--ink); font-weight: 600; }
     const deals = S.mode === "deals";
     document.getElementById("view-comp").hidden = deals;
     document.getElementById("view-deals").hidden = !deals;
-    const nb = document.getElementById("nav-deals");
-    nb.setAttribute("aria-pressed", deals); nb.textContent = deals ? "← Предложение" : "Сделки";
+    document.getElementById("nav-comp").setAttribute("aria-pressed", !deals);
+    document.getElementById("nav-deals").setAttribute("aria-pressed", deals);
     document.getElementById("page-title").textContent = deals ? "Сделки" : "Конкурентный срез";
     document.getElementById("asof").textContent = deals ? `Договоры ДДУ · ${monthLong(DMONTHS[0])} – ${monthLong(DMONTHS[DMONTHS.length - 1])}` : `Екатеринбург · цены на ${ru(latest)}`;
     if (deals) { renderTabs(); renderDeals(); return; }
