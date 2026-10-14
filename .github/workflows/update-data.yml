@@ -1,0 +1,72 @@
+name: Ежедневное обновление данных
+
+on:
+  schedule:
+    - cron: "17 0 * * *"   # каждый день в 05:17 по Екатеринбургу (00:17 UTC)
+  workflow_dispatch:         # ручной запуск: вкладка Actions → Run workflow
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    # Windows: сборка идёт теми же скриптами PowerShell 5.1, что и при ручном обновлении
+    runs-on: windows-latest
+    steps:
+      - name: Не менять переводы строк
+        shell: bash
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Установить библиотеки Google
+        shell: bash
+        run: pip install --quiet google-auth requests
+
+      - name: Скачать таблицы
+        id: fetch
+        shell: bash
+        env:
+          GOOGLE_SA_KEY: ${{ secrets.GOOGLE_SA_KEY }}
+          PYTHONUTF8: "1"
+        run: python fetch_sheets.py
+
+      - name: Собрать страницу
+        if: steps.fetch.outputs.ok == 'true'
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dir = (Get-Location).Path
+          $tz = [TimeZoneInfo]::FindSystemTimeZoneById('Ekaterinburg Standard Time')
+          $now = [TimeZoneInfo]::ConvertTimeFromUtc([DateTime]::UtcNow, $tz).ToString('dd.MM.yyyy HH:mm')
+          & "$dir\build_data.ps1" -src "$dir\raw\lots.json" -out "$dir\data.js"
+          & "$dir\build_deals.ps1" -src "$dir\raw\deals.json" -out "$dir\deals.js"
+          & "$dir\build_page.ps1" -dir $dir -data "$dir\data.js" -deals "$dir\deals.js" -ref "$dir\ref.js" -builtAt $now
+
+      - name: Опубликовать, если данные изменились
+        if: steps.fetch.outputs.ok == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # строка с датой сборки меняется каждый день, её не считаем изменением данных
+          if git diff --quiet -I 'window\.BUILT_AT' -- index.html; then
+            echo "Данные не изменились"
+            git checkout -- index.html
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Автообновление данных $(date -u +%Y-%m-%d)"
+          git push
+          gh api -X POST "repos/${{ github.repository }}/pages/builds" > /dev/null || true
