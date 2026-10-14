@@ -59,8 +59,9 @@ h1 { font-family: var(--font-display); font-weight: 600; font-size: 20px; margin
 .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 .tab { appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-weight: 500; padding: 10px 18px; border-radius: 100px; cursor: pointer; display: flex; gap: 8px; align-items: baseline; transition: background-color .15s, border-color .15s; }
 .tab:hover { background: var(--bg); }
-.tab[aria-selected="true"] { background: var(--own); border-color: var(--own); color: #FFFFFF; }
-.tab[aria-selected="true"]:hover { background: var(--own-hover); }
+.tab[aria-selected="true"], .tab[aria-pressed="true"] { background: var(--own); border-color: var(--own); color: #FFFFFF; }
+.tab[aria-selected="true"]:hover, .tab[aria-pressed="true"]:hover { background: var(--own-hover); }
+.tab[aria-pressed="true"]::before { content: "✓"; font-weight: 700; }
 .tab .cnt { font-size: 12px; opacity: .7; font-variant-numeric: tabular-nums; }
 .nav-sec { margin-left: 28px; display: flex; gap: 8px; flex-wrap: wrap; }
 .nav-btn { appearance: none; font: inherit; font-weight: 600; font-size: 14px; padding: 10px 18px; border-radius: 100px; border: 1.5px solid var(--own); background: var(--surface); color: var(--own); cursor: pointer; white-space: nowrap; transition: background-color .15s, color .15s; }
@@ -567,8 +568,13 @@ footer.method b { color: var(--ink); font-weight: 600; }
   function renderTabs() {
     const el = document.getElementById("tabs");
     if (S.mode === "deals") {
-      el.innerHTML = Object.entries(DOBJ).map(([k, O]) => `<button class="tab" role="tab" aria-selected="${k === DS.obj}" data-o="${k}">${esc(O.label)}<span class="cnt">${DEALS.filter(O.f).length}</span></button>`).join("");
-      el.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => { DS.obj = b.dataset.o; dealsReset(); try { history.replaceState(null, "", "#deals" + (DS.obj === "best" ? "" : "-" + DS.obj)); } catch (e) {} renderAll(); }));
+      // проекты выбираются в любом сочетании; последний выбранный снять нельзя
+      el.innerHTML = Object.entries(DOBJ).map(([k, O]) => `<button class="tab" type="button" aria-pressed="${DS.objs.has(k)}" data-o="${k}" title="Нажмите, чтобы добавить или убрать проект">${esc(O.label)}<span class="cnt">${DEALS.filter(O.f).length}</span></button>`).join("");
+      el.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => {
+        const k = b.dataset.o;
+        if (DS.objs.has(k)) { if (DS.objs.size === 1) return; DS.objs.delete(k); } else DS.objs.add(k);
+        dealsReset(); try { history.replaceState(null, "", "#" + dealsHashOf()); } catch (e) {} renderAll();
+      }));
       return;
     }
     el.innerHTML = Object.entries(GROUPS).map(([k, G]) =>
@@ -1239,13 +1245,22 @@ footer.method b { color: var(--ink); font-weight: 600; }
   const monthLabel = m => MON[+m.slice(5, 7) - 1] + " " + m.slice(2, 4);
   const monthLong = m => ["январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"][+m.slice(5, 7) - 1] + " " + m.slice(0, 4);
   const PAYS = ["Ипотека", "Рассрочка", "100% оплата"];
-  const DS = { obj: "best", from: "", to: "", rooms: null, pay: null, dtype: "all", fin: "all", sort: { k: "month", asc: false } };
+  // objs — выбранные проекты (любое сочетание), по умолчанию все
+  const DS = { objs: new Set(Object.keys(DOBJ)), from: "", to: "", rooms: null, pay: null, dtype: "all", fin: "all", sort: { k: "month", asc: false } };
   const dSum = (L, f) => L.reduce((a, d) => a + (f(d) || 0), 0);
-  const objColor = o => cssv(o === "ДМД2" ? "--market" : "--own");
+  const objKeys = () => Object.keys(DOBJ).filter(k => DS.objs.has(k));
+  const objF = () => { const fs = objKeys().map(k => DOBJ[k].f); return d => fs.some(f => f(d)); };
+  const objAll = () => DS.objs.size === Object.keys(DOBJ).length;
+  const objLabel = () => objAll() ? "Все проекты" : objKeys().map(k => DOBJ[k].label).join(" + ");
+  const objIn = () => DS.objs.size === 1 ? `по ЖК «${esc(objLabel())}»` : "по выбранным проектам";
+  // #deals — все проекты, #deals-alisa-dmd2 — выбранные
+  const dealsHashOf = () => "deals" + (objAll() ? "" : "-" + objKeys().join("-"));
+  // при нескольких проектах у каждого ЖК свой цвет, в одном ЖК — как раньше
+  const objColor = o => cssv(DS.objs.size > 1 ? { "Бестселлер": "--own", "Алиса": "--r2", "ДМД2": "--market" }[o] || "--comp" : o === "ДМД2" ? "--market" : "--own");
   const roomKey = r => r === "студия" ? "студия" : r === "4" || r === "4+" ? "4+" : r;
 
   function dealsReset() {
-    const own = DEALS.filter(DOBJ[DS.obj].f);
+    const own = DEALS.filter(objF());
     DMONTHS = uniq(own.map(d => d.month)).sort();
     DS.from = DMONTHS[0] || ""; DS.to = DMONTHS[DMONTHS.length - 1] || "";
     DS.rooms = new Set(ROOMS.filter(x => own.some(d => roomKey(d.rooms) === x)));
@@ -1253,7 +1268,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     DS.dtype = "all"; DS.fin = "all";
   }
   function dealsFiltered() {
-    const f = DOBJ[DS.obj].f;
+    const f = objF();
     return DEALS.filter(d => f(d) && d.month >= DS.from && d.month <= DS.to && DS.rooms.has(roomKey(d.rooms)) && DS.pay.has(d.pay)
       && (DS.dtype === "all" || d.dealType === DS.dtype)
       && (DS.fin === "all" || (DS.fin === "with" ? d.finish === "С отделкой" : d.finish !== "С отделкой")));
@@ -1271,7 +1286,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     const opts = DMONTHS.map(m => `<option value="${m}">${monthLong(m)}</option>`).join("");
     const fromEl = document.getElementById("d-from"), toEl = document.getElementById("d-to");
     fromEl.innerHTML = opts; toEl.innerHTML = opts; fromEl.value = DS.from; toEl.value = DS.to;
-    const own = DEALS.filter(DOBJ[DS.obj].f);
+    const own = DEALS.filter(objF());
     chipGroup("d-rooms", ROOMS.filter(x => own.some(d => roomKey(d.rooms) === x)), DS.rooms, v => ROOM_LABEL[v]);
     chipGroup("d-pay", PAYS.filter(p => own.some(d => d.pay === p)), DS.pay);
     segGroup("d-dtype", [["all", "Все"], ["Прямая", "Прямые"], ["Партнерская", "Партнёрские"]], DS.dtype, v => { DS.dtype = v; });
@@ -1517,7 +1532,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
   function renderManagers(L) {
     const by = {}; L.forEach(d => { const k = d.mgr || "Не указан"; (by[k] = by[k] || []).push(d); });
     const items = Object.entries(by).map(([name, l]) => { const s = dstats(l); return { name, rev: s.rev, n: s.n, left: `Ср. чек: ${mln(s.budget)} млн ₽ · ${th(s.ppm)} тыс. ₽/м²`, right: `Скидки: ${mln(discOnly(l))} млн ₽ (${discTxt(s.discPct)})` }; }).sort((a, b) => b.rev - a.rev);
-    document.getElementById("rank-mgr").innerHTML = !items.length ? `<div class="empty">Нет сделок</div>` : (items.length === 1 && items[0].name === "Не указан") ? `<div class="empty">В источнике по ЖК «${esc(DOBJ[DS.obj].label)}» менеджеры не указаны</div>` : rankHtml(items, items[0].rev);
+    document.getElementById("rank-mgr").innerHTML = !items.length ? `<div class="empty">Нет сделок</div>` : (items.length === 1 && items[0].name === "Не указан") ? `<div class="empty">В источнике ${objIn()} менеджеры не указаны</div>` : rankHtml(items, items[0].rev);
   }
   function renderAgencies(L) {
     const agentName = a => a.replace(/\s*\d{9,12}\s*$/, "").replace(/\s*\(ИП [^)]*\)/, "").trim();
@@ -1528,7 +1543,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
       return { name, rev: s.rev, n: s.n, left: `АВ: ${mln(s.av)} млн ₽${pcts.length ? ` · ср. ${nf1.format(pcts.reduce((a, b) => a + b, 0) / pcts.length * 100)} %` : ""}`, right: `Ср. чек: ${mln(s.budget)} млн ₽` };
     }).sort((a, b) => b.rev - a.rev);
     const partnerAll = L.filter(d => d.dealType === "Партнерская");
-    document.getElementById("rank-agent").innerHTML = items.length ? rankHtml(items, items[0].rev) : `<div class="empty">${partnerAll.length ? `В источнике по ЖК «${esc(DOBJ[DS.obj].label)}» агентства и вознаграждение не указаны` : "Партнёрских сделок нет"}</div>`;
+    document.getElementById("rank-agent").innerHTML = items.length ? rankHtml(items, items[0].rev) : `<div class="empty">${partnerAll.length ? `В источнике ${objIn()} агентства и вознаграждение не указаны` : "Партнёрских сделок нет"}</div>`;
     const D = dstats(L.filter(d => d.dealType !== "Партнерская")), sP = dstats(partnerAll);
     document.getElementById("rank-agent-note").textContent = [sP ? `Партнёрских ${sP.n} из ${L.length} сделок, ${nf0.format(sP.rev / dSum(L, d => d.price) * 100)} % выручки` : "", D ? `прямые продажи: ${D.n} сд., ${mln(D.rev)} млн ₽` : ""].filter(Boolean).join("; ") + ".";
   }
@@ -1547,7 +1562,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
   function goSection(mode) {
     if (S.mode === mode) return;
     S.mode = mode;
-    try { history.replaceState(null, "", "#" + (mode === "deals" ? "deals" + (DS.obj === "best" ? "" : "-" + DS.obj) : S.g)); } catch (e) {}
+    try { history.replaceState(null, "", "#" + (mode === "deals" ? dealsHashOf() : S.g)); } catch (e) {}
     window.scrollTo(0, 0); renderAll();
   }
   document.getElementById("nav-offer").addEventListener("click", () => goSection("comp"));
@@ -1655,7 +1670,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     document.getElementById("nav-offer").setAttribute("aria-pressed", !deals);
     document.getElementById("nav-deals").setAttribute("aria-pressed", deals);
     document.getElementById("page-title").textContent = deals ? "Сделки" : "Конкурентный срез";
-    document.getElementById("asof").textContent = deals ? (DMONTHS.length ? `${DOBJ[DS.obj].label} · договоры ${monthLong(DMONTHS[0])} – ${monthLong(DMONTHS[DMONTHS.length - 1])}` : "Сделки") : `Екатеринбург · цены на ${ru(latest)}`;
+    document.getElementById("asof").textContent = deals ? (DMONTHS.length ? `${objLabel()} · договоры ${monthLong(DMONTHS[0])} – ${monthLong(DMONTHS[DMONTHS.length - 1])}` : "Сделки") : `Екатеринбург · цены на ${ru(latest)}`;
     if (deals) { renderTabs(); renderDeals(); return; }
     const dd = document.getElementById("f-comps"); const wasOpen = dd.open;
     renderTabs(); renderFilters();
@@ -1667,7 +1682,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
   if (window.REF) applyRef(window.REF);
   if (window.BUILT_AT) document.getElementById("deals-built").textContent = `Обновляется автоматически каждый день, последнее изменение ${window.BUILT_AT}.`;
   resetFilters(); dealsReset();
-  if (dealsHash) { const o = initialG.slice(6); if (DOBJ[o]) DS.obj = o; }
+  if (dealsHash) { const ks = initialG.slice(6).split("-").filter(k => DOBJ[k]); if (ks.length) DS.objs = new Set(ks); }
   dealsReset();
   if (typeof Chart === "undefined") {
     document.querySelectorAll(".chart-box").forEach(b => b.innerHTML = `<div class="empty">Не удалось загрузить библиотеку графиков. Проверьте доступ к cdnjs.cloudflare.com</div>`);
