@@ -29,7 +29,7 @@ def set_output(name, value):
 
 
 def main():
-    key = os.environ.get("GOOGLE_SA_KEY", "").strip()
+    key = os.environ.get("GOOGLE_SA_KEY", "").lstrip("﻿").strip()
     if not key:
         print("::warning::Секрет GOOGLE_SA_KEY не задан, обновление пропущено")
         set_output("ok", "false")
