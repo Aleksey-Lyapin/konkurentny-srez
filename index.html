@@ -115,6 +115,9 @@ button:focus-visible, input:focus-visible, summary:focus-visible, th:focus-visib
 .kpi .k-val small { font-family: var(--font-ui); font-size: 13px; font-weight: 500; color: var(--ink-2); margin-left: 4px; letter-spacing: 0; }
 .kpi .k-sub { font-size: 12.5px; color: var(--ink-2); }
 .kpi .k-sub .d { font-weight: 600; color: var(--ink); white-space: nowrap; }
+/* выделенный показатель под основным значением (средняя площадь сделок) */
+.kpi .k-accent { display: inline-flex; align-items: baseline; gap: 6px; flex-wrap: wrap; margin-top: 2px; padding: 4px 10px; border-radius: 10px; background: var(--w1); color: var(--own); font-size: 13px; font-weight: 500; }
+.kpi .k-accent b { font-family: var(--font-display); font-size: 18px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; }
 .kpi.own .k-val { color: var(--own); }
 
 .grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; }
@@ -498,8 +501,8 @@ footer.method b { color: var(--ink); font-weight: 600; }
   // ---------- state ----------
   const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
   const initialG = (location.hash || "").slice(1);
-  // по умолчанию и по #deals, #deals-all, #deals-alisa, #deals-dmd2 открывается раздел сделок; #<проект> — предложение
-  const dealsHash = !initialG || initialG.startsWith("deals");
+  // #deals, #deals-alisa, #deals-dmd2 открывают раздел сделок
+  const dealsHash = initialG.startsWith("deals");
   const S = {
     g: GROUPS[initialG] ? initialG : (GROUPS[store.get("cs.g")] ? store.get("cs.g") : "alisa"),
     mode: dealsHash ? "deals" : "comp",
@@ -563,7 +566,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     const el = document.getElementById("tabs");
     if (S.mode === "deals") {
       el.innerHTML = Object.entries(DOBJ).map(([k, O]) => `<button class="tab" role="tab" aria-selected="${k === DS.obj}" data-o="${k}">${esc(O.label)}<span class="cnt">${DEALS.filter(O.f).length}</span></button>`).join("");
-      el.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => { DS.obj = b.dataset.o; dealsReset(); try { history.replaceState(null, "", "#deals" + (DS.obj === "all" ? "" : "-" + DS.obj)); } catch (e) {} renderAll(); }));
+      el.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => { DS.obj = b.dataset.o; dealsReset(); try { history.replaceState(null, "", "#deals" + (DS.obj === "best" ? "" : "-" + DS.obj)); } catch (e) {} renderAll(); }));
       return;
     }
     el.innerHTML = Object.entries(GROUPS).map(([k, G]) =>
@@ -1223,7 +1226,6 @@ footer.method b { color: var(--ink); font-weight: 600; }
   // ================= раздел «Сделки» =================
   const DEALS = window.DEALS || [];
   const DOBJ = {
-    all: { label: "Все проекты", f: d => DOBJ_NAMES.includes(d.obj) },
     best: { label: "Бестселлер", f: d => d.obj === "Бестселлер" },
     alisa: { label: "Алиса", f: d => d.obj === "Алиса" },
     dmd2: { label: "ДМД2", f: d => d.obj === "ДМД2" }
@@ -1235,11 +1237,9 @@ footer.method b { color: var(--ink); font-weight: 600; }
   const monthLabel = m => MON[+m.slice(5, 7) - 1] + " " + m.slice(2, 4);
   const monthLong = m => ["январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"][+m.slice(5, 7) - 1] + " " + m.slice(0, 4);
   const PAYS = ["Ипотека", "Рассрочка", "100% оплата"];
-  const DS = { obj: "all", from: "", to: "", rooms: null, pay: null, dtype: "all", fin: "all", sort: { k: "month", asc: false } };
+  const DS = { obj: "best", from: "", to: "", rooms: null, pay: null, dtype: "all", fin: "all", sort: { k: "month", asc: false } };
   const dSum = (L, f) => L.reduce((a, d) => a + (f(d) || 0), 0);
-  // во «Всех проектах» у каждого ЖК свой цвет, в отдельном ЖК — как раньше
-  const objColor = o => cssv(DS.obj === "all" ? { "Бестселлер": "--own", "Алиса": "--r2", "ДМД2": "--market" }[o] || "--comp" : o === "ДМД2" ? "--market" : "--own");
-  const objIn = () => DS.obj === "all" ? "по выбранным проектам" : `по ЖК «${esc(DOBJ[DS.obj].label)}»`;
+  const objColor = o => cssv(o === "ДМД2" ? "--market" : "--own");
   const roomKey = r => r === "студия" ? "студия" : r === "4" || r === "4+" ? "4+" : r;
 
   function dealsReset() {
@@ -1285,7 +1285,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     const tiles = s ? [
       { label: "Сделок", val: nf0.format(s.n), sub: per },
       { label: "Выручка по договорам", val: s.rev >= 1e9 ? nf2.format(s.rev / 1e9) : mln(s.rev), unit: s.rev >= 1e9 ? "млрд ₽" : "млн ₽", sub: `средний бюджет ${mln(s.budget)} млн ₽` },
-      { label: "Продано площади", val: nf1.format(s.area), unit: "м²", sub: `средняя площадь ${nf1.format(s.area / s.n)} м²` },
+      { label: "Продано площади", val: nf1.format(s.area), unit: "м²", sub: `<span class="k-accent">средняя площадь <b>${nf1.format(s.area / s.n)} м²</b></span>` },
       { label: "Средняя цена м² договора", val: th(s.ppm), unit: "тыс. ₽", sub: `прайс ${th(s.list / s.area)} тыс. ₽/м²` },
       { label: "Скидка / наценка к прайсу", val: discTxt(s.discPct), sub: `скидки ${mln(discOnly(L))} млн ₽${markupOnly(L) ? ` · наценки ${mln(markupOnly(L))} млн ₽` : ""}` },
       { label: "Вознаграждение агентам", val: s.av ? mln(s.av) : "—", unit: "млн ₽", sub: s.av ? `${nf1.format(s.avShare * 100)} % выручки · партнёрских ${s.partnerN} из ${s.n}` : `в источнике не указано · партнёрских ${s.partnerN} из ${s.n}` }
@@ -1515,7 +1515,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
   function renderManagers(L) {
     const by = {}; L.forEach(d => { const k = d.mgr || "Не указан"; (by[k] = by[k] || []).push(d); });
     const items = Object.entries(by).map(([name, l]) => { const s = dstats(l); return { name, rev: s.rev, n: s.n, left: `Ср. чек: ${mln(s.budget)} млн ₽ · ${th(s.ppm)} тыс. ₽/м²`, right: `Скидки: ${mln(discOnly(l))} млн ₽ (${discTxt(s.discPct)})` }; }).sort((a, b) => b.rev - a.rev);
-    document.getElementById("rank-mgr").innerHTML = !items.length ? `<div class="empty">Нет сделок</div>` : (items.length === 1 && items[0].name === "Не указан") ? `<div class="empty">В источнике ${objIn()} менеджеры не указаны</div>` : rankHtml(items, items[0].rev);
+    document.getElementById("rank-mgr").innerHTML = !items.length ? `<div class="empty">Нет сделок</div>` : (items.length === 1 && items[0].name === "Не указан") ? `<div class="empty">В источнике по ЖК «${esc(DOBJ[DS.obj].label)}» менеджеры не указаны</div>` : rankHtml(items, items[0].rev);
   }
   function renderAgencies(L) {
     const agentName = a => a.replace(/\s*\d{9,12}\s*$/, "").replace(/\s*\(ИП [^)]*\)/, "").trim();
@@ -1526,7 +1526,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
       return { name, rev: s.rev, n: s.n, left: `АВ: ${mln(s.av)} млн ₽${pcts.length ? ` · ср. ${nf1.format(pcts.reduce((a, b) => a + b, 0) / pcts.length * 100)} %` : ""}`, right: `Ср. чек: ${mln(s.budget)} млн ₽` };
     }).sort((a, b) => b.rev - a.rev);
     const partnerAll = L.filter(d => d.dealType === "Партнерская");
-    document.getElementById("rank-agent").innerHTML = items.length ? rankHtml(items, items[0].rev) : `<div class="empty">${partnerAll.length ? `В источнике ${objIn()} агентства и вознаграждение не указаны` : "Партнёрских сделок нет"}</div>`;
+    document.getElementById("rank-agent").innerHTML = items.length ? rankHtml(items, items[0].rev) : `<div class="empty">${partnerAll.length ? `В источнике по ЖК «${esc(DOBJ[DS.obj].label)}» агентства и вознаграждение не указаны` : "Партнёрских сделок нет"}</div>`;
     const D = dstats(L.filter(d => d.dealType !== "Партнерская")), sP = dstats(partnerAll);
     document.getElementById("rank-agent-note").textContent = [sP ? `Партнёрских ${sP.n} из ${L.length} сделок, ${nf0.format(sP.rev / dSum(L, d => d.price) * 100)} % выручки` : "", D ? `прямые продажи: ${D.n} сд., ${mln(D.rev)} млн ₽` : ""].filter(Boolean).join("; ") + ".";
   }
@@ -1545,7 +1545,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
   function goSection(mode) {
     if (S.mode === mode) return;
     S.mode = mode;
-    try { history.replaceState(null, "", "#" + (mode === "deals" ? "deals" + (DS.obj === "all" ? "" : "-" + DS.obj) : S.g)); } catch (e) {}
+    try { history.replaceState(null, "", "#" + (mode === "deals" ? "deals" + (DS.obj === "best" ? "" : "-" + DS.obj) : S.g)); } catch (e) {}
     window.scrollTo(0, 0); renderAll();
   }
   document.getElementById("nav-offer").addEventListener("click", () => goSection("comp"));
