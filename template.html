@@ -1,0 +1,1678 @@
+<title>Конкурентный срез BAZA</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&family=Unbounded:wght@500;600;700&display=swap">
+<style>
+/* Layout: white sticky header with BAZA mark and project pills; filters; KPI strip; 2-column chart grid; full-width tables.
+   Palette follows baza.bz: navy ink on pale blue ground, white 20px cards, brand red marks our project.
+   Single light theme on purpose, as on baza.bz. */
+:root {
+  color-scheme: light;
+  --bg: #F5F8FB;
+  --surface: #FFFFFF;
+  --surface-2: #EDF6FF;
+  --ink: #002346;
+  --ink-2: #3E5C7C;
+  --muted: #6C8DAF;
+  --line: #D8E6F4;
+  --line-strong: #BFD4E8;
+  --own: #E20617;
+  --own-hover: #B50C20;
+  --own-soft: rgba(226,6,23,.05);
+  --market: #002346;
+  --comp: #BFD4E8;
+  --comp-pt: rgba(108,141,175,.42);
+  --band: rgba(108,141,175,.16);
+  --range: #355E8E;
+  --w1: #FEF3F3; --w2: #FBDADC; --w3: #F6B4B9;
+  --c1: #EDF6FF; --c2: #D8E6F4; --c3: #BFD4E8;
+  --r1: #BFD4E8; --r2: #6C8DAF; --r3: #3E6690; --r4: #1D4166; --r5: #002346;
+  --focus: #6C8DAF;
+  --shadow: 0 0 16px 0 rgba(0,35,70,.10);
+  --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-display: "Unbounded", "Inter", system-ui, sans-serif;
+  --radius: 20px;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 14px; line-height: 1.45; margin: 0; }
+.wrap { max-width: 1320px; margin: 0 auto; padding-inline: 20px; padding-block: 0 48px; }
+@media (max-width: 520px) { .wrap { padding-inline: 16px; } }
+
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--surface); box-shadow: 0 4px 16px rgba(0,35,70,.06); }
+.top-inner { max-width: 1320px; margin: 0 auto; padding: 14px 20px; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between; }
+@media (max-width: 520px) { .top-inner { padding-inline: 16px; } }
+.brand { display: flex; gap: 16px; align-items: center; min-width: 0; }
+.logo { width: 64px; height: 47px; flex: none; display: block; }
+.logo svg { width: 100%; height: 100%; display: block; }
+.brand-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding-left: 16px; border-left: 1px solid var(--line); }
+.eyebrow { font-size: 12px; color: var(--muted); font-weight: 500; }
+h1 { font-family: var(--font-display); font-weight: 600; font-size: 20px; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab { appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-weight: 500; padding: 10px 18px; border-radius: 100px; cursor: pointer; display: flex; gap: 8px; align-items: baseline; transition: background-color .15s, border-color .15s; }
+.tab:hover { background: var(--bg); }
+.tab[aria-selected="true"] { background: var(--own); border-color: var(--own); color: #FFFFFF; }
+.tab[aria-selected="true"]:hover { background: var(--own-hover); }
+.tab .cnt { font-size: 12px; opacity: .7; font-variant-numeric: tabular-nums; }
+.nav-sec { margin-left: 28px; display: flex; gap: 8px; flex-wrap: wrap; }
+.nav-btn { appearance: none; font: inherit; font-weight: 600; font-size: 14px; padding: 10px 18px; border-radius: 100px; border: 1.5px solid var(--own); background: var(--surface); color: var(--own); cursor: pointer; white-space: nowrap; transition: background-color .15s, color .15s; }
+.nav-btn:hover { background: var(--w1); }
+.nav-btn[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #FFFFFF; cursor: default; }
+.nav-btn[aria-pressed="true"]:hover { background: var(--ink); }
+.period { display: flex; gap: 6px; align-items: center; color: var(--muted); }
+.period select { font: inherit; font-size: 13px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 100px; background: var(--surface); color: var(--ink); cursor: pointer; }
+td.wrap { white-space: normal; min-width: 160px; }
+/* длинный формат скидки переносится по словам */
+#tbl-deals td.fmt-wrap { white-space: normal; min-width: 200px; max-width: 260px; line-height: 1.35; }
+button:focus-visible, input:focus-visible, summary:focus-visible, th:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.filters { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: flex-end; margin-top: 20px; padding: 18px 20px; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); }
+.fgroup { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.flabel { font-size: 12px; color: var(--muted); font-weight: 500; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { appearance: none; font: inherit; font-size: 13px; font-weight: 500; padding: 7px 14px; border-radius: 100px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; white-space: nowrap; transition: background-color .15s, border-color .15s; }
+.chip:hover { background: var(--bg); border-color: var(--line-strong); }
+.chip[aria-pressed="true"] { background: var(--ink); color: #FFFFFF; border-color: var(--ink); }
+.seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 100px; background: var(--bg); border: 1px solid var(--line); }
+.seg button { appearance: none; border: 0; background: transparent; font: inherit; font-size: 13px; font-weight: 500; padding: 6px 13px; border-radius: 100px; color: var(--ink-2); cursor: pointer; white-space: nowrap; }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 4px rgba(0,35,70,.14); }
+.area { display: flex; gap: 6px; align-items: center; color: var(--muted); }
+.area input { width: 76px; font: inherit; font-size: 13px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 100px; background: var(--surface); color: var(--ink); font-variant-numeric: tabular-nums; }
+.area input::placeholder { color: var(--muted); }
+.dd { position: relative; }
+.dd summary { list-style: none; cursor: pointer; font-size: 13px; font-weight: 500; padding: 7px 34px 7px 14px; border: 1px solid var(--line); border-radius: 100px; background: var(--surface); color: var(--ink); position: relative; white-space: nowrap; }
+.dd summary:hover { background: var(--bg); }
+.dd summary::-webkit-details-marker { display: none; }
+.dd summary::after { content: ""; position: absolute; right: 14px; top: 50%; width: 6px; height: 6px; border-right: 1.5px solid var(--ink); border-bottom: 1.5px solid var(--ink); transform: translateY(-70%) rotate(45deg); }
+.dd[open] summary::after { transform: translateY(-30%) rotate(-135deg); }
+.dd-panel { position: absolute; z-index: 30; top: calc(100% + 8px); left: 0; width: min(360px, calc(100vw - 32px)); max-height: 380px; overflow: auto; background: var(--surface); border-radius: 16px; box-shadow: 0 8px 32px rgba(0,35,70,.18); padding: 8px; }
+.dd-panel label { display: flex; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 10px; cursor: pointer; font-size: 13px; }
+.dd-panel label:hover { background: var(--bg); }
+.dd-panel label.off { color: var(--muted); cursor: default; }
+.dd-panel label .n { margin-left: auto; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.dd-panel input[type="checkbox"] { accent-color: var(--own); width: 16px; height: 16px; }
+.dd-actions { display: flex; gap: 14px; padding: 6px 10px 10px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.link-btn { appearance: none; border: 0; background: none; color: var(--own); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; padding: 0; }
+.link-btn:hover { color: var(--own-hover); }
+.reset { margin-left: auto; }
+
+.note { font-size: 13px; color: var(--ink-2); margin: 14px 0 0; padding: 10px 16px; background: var(--surface-2); border-radius: 12px; }
+.note b { color: var(--ink); font-weight: 600; }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; margin-block: 20px; }
+.kpi { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px 20px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.kpi .k-label { font-size: 12.5px; color: var(--muted); font-weight: 500; }
+.kpi .k-val { font-family: var(--font-display); font-size: 24px; font-weight: 600; letter-spacing: -.02em; }
+.kpi .k-val small { font-family: var(--font-ui); font-size: 13px; font-weight: 500; color: var(--ink-2); margin-left: 4px; letter-spacing: 0; }
+.kpi .k-sub { font-size: 12.5px; color: var(--ink-2); }
+.kpi .k-sub .d { font-weight: 600; color: var(--ink); white-space: nowrap; }
+/* выделенный показатель под основным значением (средняя площадь сделок) */
+.kpi .k-accent { display: inline-flex; align-items: baseline; gap: 6px; flex-wrap: wrap; margin-top: 2px; padding: 4px 10px; border-radius: 10px; background: var(--w1); color: var(--own); font-size: 13px; font-weight: 500; }
+.kpi .k-accent b { font-family: var(--font-display); font-size: 18px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; }
+.kpi.own .k-val { color: var(--own); }
+
+.grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; }
+.card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px 24px; min-width: 0; display: flex; flex-direction: column; gap: 12px; grid-column: 1 / -1; }
+.card.third { grid-column: span 2; }
+.card.half { grid-column: span 3; }
+.card.full { grid-column: 1 / -1; }
+@media (max-width: 1180px) { .card.third { grid-column: 1 / -1; } }
+@media (max-width: 1000px) { .card.half { grid-column: 1 / -1; } }
+@media (max-width: 520px) { .card { padding: 18px 16px; } }
+.card.third { padding: 20px 18px; }
+/* одинаковая высота шапки у трёх рейтингов, чтобы строки графиков стояли на одном уровне */
+.card.third h2 { line-height: 1.3; min-height: 2.6em; }
+.card.third .sub { line-height: 1.45; min-height: 2.9em; }
+.card-head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
+.seg-sm button { font-size: 12px; padding: 5px 11px; }
+.insight { margin: 0; font-size: 13px; color: var(--ink); background: var(--bg); border-radius: 12px; padding: 9px 14px; }
+.insight:empty { display: none; }
+.insight b { font-weight: 600; }
+.card h2 { font-family: var(--font-display); font-size: 16px; font-weight: 600; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.card .sub { font-size: 13px; color: var(--muted); margin: -4px 0 0; }
+.chart-box { position: relative; width: 100%; }
+.empty { color: var(--muted); font-size: 13px; padding: 24px 0; text-align: center; }
+
+.tbl-wrap { overflow-x: auto; margin-inline: -4px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { padding: 9px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
+th { font-size: 12px; font-weight: 500; color: var(--muted); vertical-align: bottom; background: var(--surface); }
+thead th { border-bottom: 1px solid var(--line-strong); }
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: var(--ink); }
+th.sorted { color: var(--ink); }
+th.sorted::after { content: " ↓"; color: var(--own); }
+th.sorted.asc::after { content: " ↑"; }
+th:first-child, td:first-child { text-align: left; }
+td.l, th.l { text-align: left; }
+tbody tr:hover td { background: var(--bg); }
+tr.own-row td, tbody tr.own-row:hover td { background: var(--own-soft); font-weight: 600; }
+tr.own-row td:first-child { box-shadow: inset 3px 0 0 var(--own); color: var(--own); }
+/* в матрице розовый и голубой заняты отклонениями, поэтому наш проект — тёмно-синяя строка */
+#tbl-matrix tr.own-row td, #tbl-matrix tbody tr.own-row:hover td { background: var(--ink); color: #FFFFFF; border-bottom-color: var(--ink); }
+#tbl-matrix tr.own-row td .sm { color: rgba(255,255,255,.72); }
+#tbl-matrix tr.own-row td:first-child { color: #FFFFFF; box-shadow: inset 4px 0 0 var(--own); }
+/* наши лоты и аналоги */
+.ltabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin: -6px 0 2px; flex-wrap: wrap; }
+.ltab { appearance: none; border: 0; background: none; font: inherit; font-family: var(--font-display); font-size: 15px; font-weight: 600; color: var(--muted); padding: 8px 4px 12px; margin-right: 18px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.ltab:hover { color: var(--ink); }
+.ltab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--own); }
+.an-controls { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; }
+.checks { display: flex; gap: 16px; padding-block: 5px; }
+.check { display: flex; gap: 7px; align-items: center; font-size: 13px; color: var(--ink); cursor: pointer; }
+.check input { accent-color: var(--own); width: 16px; height: 16px; }
+.pill { display: inline-flex; gap: 4px; align-items: center; padding: 3px 10px; border-radius: 100px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.pill.dear { background: var(--w1); color: var(--own); box-shadow: inset 0 0 0 1px var(--w3); }
+.pill.cheap { background: var(--surface-2); color: var(--r3); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.pill.par { background: var(--bg); color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line); }
+.pill.na { background: var(--bg); color: var(--muted); font-weight: 500; }
+#tbl-an tr.clk { cursor: pointer; }
+#tbl-an tr.clk:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+#tbl-an tr.clk.open td { background: var(--surface-2); }
+#tbl-an .caret { display: inline-block; width: 14px; color: var(--muted); font-size: 11px; }
+#tbl-an td.ours-v { color: var(--own); font-weight: 600; }
+#tbl-an tr.subrow > td { background: var(--bg); padding: 12px 14px 16px; }
+#tbl-an tbody tr.subrow:hover > td { background: var(--bg); }
+.anbox { display: flex; flex-direction: column; gap: 10px; white-space: normal; }
+.an-per { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--ink-2); align-items: center; }
+.an-p { display: inline-flex; gap: 5px; align-items: center; white-space: nowrap; }
+.an-p b { color: var(--ink); }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+table.an-sub { background: var(--surface); border-radius: 12px; overflow: hidden; }
+table.an-sub th, table.an-sub td { padding: 7px 10px; font-size: 12.5px; }/* рейтинги и последние сделки */
+.rank-list { display: flex; flex-direction: column; gap: 10px; }
+.rank-item { background: var(--bg); border-radius: 14px; padding: 12px 16px; display: grid; gap: 8px; }
+.rank-top { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.rank-n { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); font-size: 11.5px; font-weight: 600; display: grid; place-items: center; color: var(--ink-2); }
+.rank-item:first-child .rank-n { background: var(--own); color: #FFFFFF; box-shadow: none; }
+.rank-name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-val { font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rank-val small { font-weight: 400; color: var(--muted); margin-left: 4px; }
+.rank-bar { height: 6px; border-radius: 100px; background: var(--line); overflow: hidden; }
+.rank-bar span { display: block; height: 100%; border-radius: 100px; background: var(--own); }
+#rank-agent .rank-bar span { background: var(--range); }
+.rank-foot { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+.link-more { color: var(--own); font-weight: 600; font-size: 13.5px; text-decoration: none; white-space: nowrap; }
+.link-more:hover { color: var(--own-hover); }
+.link-more::after { content: " ›"; }
+.pay-pill { display: inline-block; padding: 3px 10px; border-radius: 100px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.pay-pill.mort { background: var(--surface-2); color: var(--r3); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.pay-pill.inst { background: var(--w1); color: var(--own); box-shadow: inset 0 0 0 1px var(--w3); }
+.pay-pill.cash { background: rgba(135,202,0,.15); color: #4A7400; box-shadow: inset 0 0 0 1px rgba(135,202,0,.45); }tr.mkt-row td { font-weight: 600; border-top: 1px solid var(--line-strong); }
+tr.mkt-row td:first-child { box-shadow: inset 3px 0 0 var(--market); }
+td .sm { display: block; font-size: 11px; color: var(--muted); font-weight: 400; }
+td.cell { min-width: 84px; }
+td.w1 { background: var(--w1); } td.w2 { background: var(--w2); } td.w3 { background: var(--w3); }
+td.c1 { background: var(--c1); } td.c2 { background: var(--c2); } td.c3 { background: var(--c3); }
+.legend-row { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--ink-2); align-items: center; }
+.sw { display: inline-block; width: 12px; height: 12px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; }
+.mix { display: flex; height: 10px; width: 120px; border-radius: 100px; overflow: hidden; gap: 2px; background: transparent; }
+.mix span { display: block; height: 100%; }
+.more { align-self: center; appearance: none; font: inherit; font-size: 13px; font-weight: 500; padding: 10px 20px; border-radius: 100px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; transition: background-color .15s; }
+.more:hover { background: var(--bg); }
+#f-reset { color: var(--own); border-color: var(--w3); background: var(--w1); }
+#f-reset:hover { background: var(--w2); }
+footer.method { margin-top: 24px; font-size: 12.5px; color: var(--ink-2); display: grid; gap: 6px; max-width: 900px; }
+footer.method b { color: var(--ink); font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">
+      <span class="logo" role="img" aria-label="BAZA Development"><svg viewBox="0 0 1920 1410" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g fill="#E20617"><path d="M321.26 434.2c60.79-30.35 88.08-91.05 88.08-186.06v-32.99C409.33 72.63 348.55 2.69 207.13 2.69H1.19v923.72h214.62c136.46 0 207.17-76.54 207.17-219.05v-75.22c0-97.65-28.53-167.59-101.72-197.94zM137.66 134.65h65.75c48.38 0 69.47 29.04 69.47 95.01v51.46c0 73.89-31.02 97.65-81.88 97.65h-53.34v-244.13zm148.87 568.75c0 68.62-24.81 91.05-70.71 91.05h-78.16v-283.71h60.79c62.03 0 88.08 26.39 88.08 112.17v80.49zM607.94 2.69l-139.08 923.72h125.42l23.59-167.59h167.64l23.59 167.59h137.84L807.87 2.69h-199.92zm27.32 630.77l65.81-467.14 65.81 467.14h-131.63z"/><polygon points="993.59 134.65 1252.87 134.65 993.59 797.09 993.59 926.41 1393.05 926.41 1393.05 794.46 1133.78 794.46 1393.05 132.01 1393.05 2.69 993.59 2.69 993.59 134.65"/><path d="M1779.58 2.69h-200.15l-139.23 923.72h125.56l23.62-167.59h167.82l23.62 167.59h137.99L1779.58 2.69zm-172.8 630.77l65.89-467.14 65.88 467.14h-131.77zM2.11 1094.71h77.49c48.99 0 73.03 27.17 73.03 77.04v157.65c0 49.88-24.05 77.04-73.03 77.04H2.11v-311.73zm48.99 44.53v222.66h27.61c15.59 0 24.94-8.02 24.94-30.28v-162.1c0-22.27-9.35-30.28-24.94-30.28h-27.61zM232.79 1226.08h67.24v44.53h-67.24v91.29h84.61v44.53h-133.6v-311.73h133.6v44.53h-84.61v86.84zM421.6 1348.99l37.41-254.28h44.98l-48.1 311.73h-73.03l-48.1-311.73h49.43l37.41 254.28zM575.69 1226.08h67.24v44.53h-67.24v91.29h84.61v44.53h-133.6v-311.73h133.6v44.53h-84.61v86.84zM690.58 1094.71h48.99v267.2h80.6v44.53h-129.59v-311.73zM837.53 1169.52c0-49.88 26.27-78.38 74.37-78.38s74.37 28.5 74.37 78.38v162.1c0 49.88-26.27 78.38-74.37 78.38s-74.37-28.5-74.37-78.38v-162.1zm48.99 165.22c0 22.27 9.8 30.73 25.38 30.73s25.38-8.46 25.38-30.73v-168.33c0-22.27-9.8-30.73-25.38-30.73s-25.38 8.46-25.38 30.73v168.33zM1163.07 1171.75v40.52c0 49.88-24.05 77.04-73.03 77.04h-23.16v117.12h-48.99v-311.73h72.14c48.99 0 73.03 27.17 73.03 77.04zm-96.19-32.51v105.54h23.16c15.59 0 24.05-7.13 24.05-29.39v-46.76c0-22.27-8.46-29.39-24.05-29.39h-23.16zM1289.54 1316.04l33.4-221.33h68.14v311.73h-46.31v-223.55l-33.84 223.55h-46.31l-36.52-220.44v220.44h-42.75v-311.73h68.14l36.07 221.33zM1475.68 1226.08h67.24v44.53h-67.24v91.29h84.61v44.53h-133.6v-311.73h133.6v44.53h-84.61v86.84zM1634.22 1180.66v225.78h-44.09v-311.73h61.46l50.32 186.59v-186.59h43.64v311.73h-50.32l-61.01-225.78zM1766.48 1094.71h151.41v44.53h-51.21v267.2h-48.99v-267.2h-51.21v-44.53z"/></g></svg></span>
+      <div class="brand-text">
+        <span class="eyebrow" id="asof">Екатеринбург</span>
+        <h1 id="page-title">Конкурентный срез</h1>
+      </div>
+      <nav class="nav-sec" aria-label="Разделы">
+        <button class="nav-btn" id="nav-offer" type="button" aria-pressed="true">Предложение</button>
+        <button class="nav-btn" id="nav-deals" type="button" aria-pressed="false">Сделки</button>
+      </nav>
+    </div>
+    <div class="tabs" role="tablist" id="tabs"></div>
+  </div>
+</header>
+
+<main class="wrap" id="view-comp">
+  <section class="filters" id="filters" aria-label="Фильтры">
+    <div class="fgroup"><span class="flabel">Комнатность</span><div class="chips" id="f-rooms"></div></div>
+    <div class="fgroup"><span class="flabel">Отделка лота</span><div class="chips" id="f-finish"></div></div>
+    <div class="fgroup"><span class="flabel">Стадия</span><div class="seg" id="f-stage"></div></div>
+    <div class="fgroup"><span class="flabel">Класс</span><div class="chips" id="f-class"></div></div>
+    <div class="fgroup"><span class="flabel">Площадь, м²</span>
+      <details class="dd" id="f-area"><summary id="f-area-sum">Все</summary><div class="dd-panel" id="f-area-panel"></div></details>
+    </div>
+    <div class="fgroup"><span class="flabel">Этаж</span>
+      <details class="dd" id="f-fl"><summary id="f-fl-sum">Все</summary><div class="dd-panel" id="f-fl-panel"></div></details>
+    </div>
+    <div class="fgroup"><span class="flabel">Конкуренты</span>
+      <details class="dd" id="f-comps"><summary id="f-comps-sum">Все</summary><div class="dd-panel" id="f-comps-panel"></div></details>
+    </div>
+    <div class="fgroup"><span class="flabel">Цена</span><div class="seg" id="f-price"></div></div>
+    <div class="fgroup"><span class="flabel">Сортировка диаграмм</span><div class="seg" id="f-sort"></div></div>
+    <div class="fgroup reset"><button class="more" id="f-reset" type="button">Сбросить фильтры</button></div>
+  </section>
+  <p class="note" id="note"></p>
+
+  <section class="kpis" id="kpis" aria-label="Ключевые показатели"></section>
+
+  <section class="grid">
+    <article class="card third">
+      <h2>Средняя цена м² по проектам</h2>
+      <p class="sub" id="sub-bar"></p>
+      <div class="chart-box" id="box-bar"><canvas></canvas></div>
+    </article>
+    <article class="card third">
+      <h2>Средняя площадь по проектам</h2>
+      <p class="sub">Средняя площадь лота в продаже, м²</p>
+      <div class="chart-box" id="box-area"><canvas></canvas></div>
+    </article>
+    <article class="card third">
+      <h2>Средний бюджет покупки по проектам</h2>
+      <p class="sub" id="sub-budget"></p>
+      <div class="chart-box" id="box-budget"><canvas></canvas></div>
+    </article>
+
+    <article class="card full">
+      <h2>Экспозиция: стоимость лотов по проектам</h2>
+      <p class="sub" id="sub-range"></p>
+      <div class="chart-box" id="box-range"><canvas></canvas></div>
+    </article>
+
+    <article class="card half">
+      <div class="card-head"><h2>Премия за этаж</h2><div class="seg seg-sm" id="f-floor"></div></div>
+      <p class="sub" id="sub-floor"></p>
+      <p class="insight" id="ins-floor"></p>
+      <div class="chart-box" style="height:400px"><canvas id="ch-floor"></canvas></div>
+    </article>
+
+    <article class="card half">
+      <h2>Структура предложения</h2>
+      <p class="sub">Доля студий, 1к, 2к и 3к+ в остатках проекта, %</p>
+      <div class="chart-box" id="box-mix"><canvas></canvas></div>
+    </article>
+    <article class="card half">
+      <h2>Цена м² по диапазонам площади</h2>
+      <p class="sub">Наш проект против среднего по конкурентам; серая полоса показывает разброс средних по проектам-конкурентам</p>
+      <div class="chart-box" style="height:380px"><canvas id="ch-line"></canvas></div>
+    </article>
+    <article class="card half">
+      <h2>Площадь и бюджет лотов</h2>
+      <p class="sub">Каждая точка — лот в продаже. Наведите, чтобы увидеть проект и параметры</p>
+      <div class="chart-box" style="height:380px"><canvas id="ch-scatter"></canvas></div>
+    </article>
+
+    <article class="card full">
+      <h2>Цена м² по комнатности</h2>
+      <p class="sub">Средняя цена м², тыс. ₽, и число лотов. Отклонение у конкурентов считается от нашего проекта в той же комнатности</p>
+      <div class="legend-row">
+        <span id="lg-own"><span class="sw" style="background:var(--ink);box-shadow:inset 3px 0 0 var(--own)"></span>наш проект</span>
+        <span><span class="sw" style="background:var(--c3)"></span>конкурент дешевле на 10 % и больше</span>
+        <span><span class="sw" style="background:var(--c1)"></span>дешевле на 1–5 %</span>
+        <span><span class="sw" style="background:var(--w1)"></span>дороже на 1–5 %</span>
+        <span><span class="sw" style="background:var(--w3)"></span>дороже на 10 % и больше</span>
+      </div>
+      <div class="tbl-wrap"><table id="tbl-matrix"></table></div>
+    </article>
+    <article class="card full" id="card-an">
+      <div class="ltabs" role="tablist">
+        <button class="ltab" role="tab" id="tab-ours" aria-selected="true" type="button">Наши лоты и аналоги</button>
+        <button class="ltab" role="tab" id="tab-all" aria-selected="false" type="button">Все лоты выборки</button>
+      </div>
+      <div class="an-controls" id="an-controls">
+        <div class="fgroup"><span class="flabel">Аналог: площадь</span><div class="seg seg-sm" id="an-tol"></div></div>
+        <div class="fgroup"><span class="flabel">Аналог: этаж ±</span><div class="seg seg-sm" id="an-fltol"></div></div>
+        <div class="fgroup"><span class="flabel">Аналог: также совпадает</span>
+          <div class="checks"><label class="check"><input type="checkbox" id="an-fin"> отделка</label><label class="check"><input type="checkbox" id="an-stage"> стадия</label></div>
+        </div>
+      </div>
+      <p class="sub" id="an-hint" style="margin:0"></p>
+      <p class="insight" id="an-ins"></p>
+      <div class="tbl-wrap"><table id="tbl-an"></table></div>
+    </article>
+  </section>
+
+  <footer class="method" id="method"></footer>
+</main>
+
+<main class="wrap" id="view-deals" hidden>
+  <section class="filters" aria-label="Фильтры сделок">
+    <div class="fgroup"><span class="flabel">Период</span>
+      <div class="period"><select id="d-from" aria-label="С месяца"></select><span>–</span><select id="d-to" aria-label="По месяц"></select></div>
+    </div>
+    <div class="fgroup"><span class="flabel">Комнатность</span><div class="chips" id="d-rooms"></div></div>
+    <div class="fgroup"><span class="flabel">Способ оплаты</span><div class="chips" id="d-pay"></div></div>
+    <div class="fgroup"><span class="flabel">Тип сделки</span><div class="seg" id="d-dtype"></div></div>
+    <div class="fgroup"><span class="flabel">Отделка</span><div class="seg" id="d-fin"></div></div>
+    <div class="fgroup reset"><button class="more" id="d-reset" type="button">Сбросить фильтры</button></div>
+  </section>
+
+  <section class="kpis" id="d-kpis" aria-label="Показатели продаж"></section>
+
+  <section class="grid">
+    <article class="card third">
+      <h2>Сделки по месяцам</h2>
+      <p class="sub">Количество договоров ДДУ</p>
+      <div class="chart-box" style="height:300px"><canvas id="ch-dcount"></canvas></div>
+    </article>
+    <article class="card third">
+      <h2>Выручка по месяцам</h2>
+      <p class="sub">Сумма договоров, млн ₽</p>
+      <div class="chart-box" style="height:300px"><canvas id="ch-drev"></canvas></div>
+    </article>
+    <article class="card third">
+      <h2>Цена м² по месяцам</h2>
+      <p class="sub">Средняя цена м² договора, тыс. ₽ (сумма договоров к сумме площадей)</p>
+      <div class="chart-box" style="height:300px"><canvas id="ch-dppm"></canvas></div>
+    </article>
+
+    <article class="card third">
+      <h2>Канал продаж</h2>
+      <p class="sub">Прямые и партнёрские сделки, доля по количеству</p>
+      <div class="chart-box" style="height:280px"><canvas id="ch-pchan"></canvas></div>
+    </article>
+    <article class="card third">
+      <h2>Тип оплаты</h2>
+      <p class="sub">Ипотека, рассрочка, 100 % оплата, доля по количеству</p>
+      <div class="chart-box" style="height:280px"><canvas id="ch-ppay"></canvas></div>
+    </article>
+    <article class="card third">
+      <h2>Отделка</h2>
+      <p class="sub">С отделкой и без, доля по количеству</p>
+      <div class="chart-box" style="height:280px"><canvas id="ch-pfin"></canvas></div>
+    </article>
+
+    <article class="card half">
+      <h2>Скидка и наценка по месяцам</h2>
+      <p class="sub">Отклонение суммы договоров без отделки от прайса, %: минус — скидка, плюс — наценка</p>
+      <div class="chart-box" style="height:320px"><canvas id="ch-ddisc"></canvas></div>
+    </article>
+    <article class="card half">
+      <h2>Форматы скидок и наценок</h2>
+      <p class="sub">Число сделок по формату. Наведите на строку, чтобы увидеть средний процент и сумму</p>
+      <div class="chart-box" id="box-dkinds"><canvas></canvas></div>
+    </article>
+
+    <article class="card half">
+      <h2>Способы оплаты</h2>
+      <p class="sub">Число сделок по способу покупки</p>
+      <div class="chart-box" id="box-dpay"><canvas></canvas></div>
+    </article>
+    <article class="card half">
+      <h2>Банки по ипотеке</h2>
+      <p class="sub" id="sub-dbank"></p>
+      <div class="chart-box" id="box-dbank"><canvas></canvas></div>
+    </article>
+
+    <article class="card half">
+      <div class="card-head"><div><h2>Рейтинг менеджеров отдела продаж</h2><p class="sub" style="margin-top:4px">Объём заключённых сделок и показатели эффективности</p></div></div>
+      <div class="rank-list" id="rank-mgr"></div>
+    </article>
+    <article class="card half">
+      <div class="card-head"><div><h2>Рейтинг агентств</h2><p class="sub" style="margin-top:4px">Партнёрские сделки, выручка и агентское вознаграждение (АВ)</p></div></div>
+      <div class="rank-list" id="rank-agent"></div>
+      <p class="sub" id="rank-agent-note" style="margin:0"></p>
+    </article>
+
+    <article class="card full">
+      <h2>Комнатность</h2>
+      <p class="sub">Сделки, средняя площадь, бюджет, цена м² и скидка по типу квартиры</p>
+      <div class="tbl-wrap"><table id="tbl-drooms"></table></div>
+    </article>
+
+    <article class="card full" id="card-dtable">
+      <h2>Сделки</h2>
+      <p class="sub" id="sub-dtable"></p>
+      <div class="tbl-wrap"><table id="tbl-deals"></table></div>
+    </article>
+  </section>
+
+  <footer class="method">
+    <div><b>Источник.</b> Google-таблица «Сделки — сводная (Бестселлер, Алиса, ДМД2)», лист «Все сделки»: договоры по ЖК «Бестселлер», «Алиса» и «Милый дом» 2 очередь (ДМД2). <span id="deals-built">Выгрузка 12.10.2026.</span> Имена покупателей и комментарии на сайт не выгружаются.</div>
+    <div><b>Цена м² договора</b> считается как сумма договоров, делённая на сумму площадей с коэффициентом 0,3/0,5 для балконов. В договорах с отделкой цена включает её стоимость. <b>Скидка</b> — сумма скидок к сумме цен по прайсу.</div>
+  </footer>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>/*__META__*/</script>
+<script>/*__REF__*/</script>
+<script>/*__DATA__*/</script>
+<script>/*__DEALS__*/</script>
+<script>
+(function () {
+  "use strict";
+  const D = window.DATA;
+  const ci = {}; D.cols.forEach((c, i) => ci[c] = i);
+  const CAT = ["p", "dev", "dis", "k", "cls", "st", "fc", "fl", "at", "plan"];
+  const DAY = 864e5;
+  let ROWS = D.rows.map(r => {
+    const o = {};
+    CAT.forEach(k => o[k] = D.dicts[k][r[ci[k]]]);
+    ["rooms", "area", "price", "disc", "floor", "ready", "lot", "appear", "priceSet", "actual"].forEach(k => o[k] = r[ci[k]]);
+    o.expo = (o.appear && o.actual) ? Math.round((Date.parse(o.actual) - Date.parse(o.appear)) / DAY) : null;
+    return o;
+  });
+
+  const GROUPS = {
+    alisa: { label: "Алиса", own: "Алиса", comps: ["Библиотечная 41", "Вэйвер", "Динамика", "Дом Культурный", "Наука и искусство", "Премиум Кварталы Маяковка", "Проспект Мира. Компаунд", "РАЗУМ на Малышева", "Сибирский сад", "Университи", "Чаадаев"] },
+    dnk: { label: "ДНК: Дом на Куйбышева", own: "ДНК: Дом на Куйбышева", comps: ["Вэйвер", "Премиум Кварталы Маяковка", "Сибирский сад", "Исеть парк", "Парк Культуры", "Парковый квартал 2.0", "Синица на Куйбышева"] },
+    md: { label: "Милый дом", own: "Милый дом (BAZA)", comps: ["Атлас Лайн", "Да на Амундсена", "Да на Амундсена (Гринвич)", "Лайв", "Московский квартал (Земельный ресурс)", "Парк Столиц", "Первый Южный", "Ривьера. Айвазовский", "Символ", "Соната Парк", "Южные кварталы (Брусника)", "Южные кварталы (Гринвич)"] },
+    // наших лотов в продаже нет, локация показывает только рынок
+    rzd: { label: "РЖД", own: "РЖД", comps: ["Тихий центр (Синара-Девелопмент)", "Городские легенды", "DOM 7", "На Некрасова", "Тетро", "Парк Столиц", "Нагорный", "Атлас Люксо", "Символ", "Clever Park", "Никольский", "Форма"] }
+  };
+  // Коэффициент скидки из листа «справочник индексов»
+  const DISCOUNT = { "Тихий центр (Синара-Девелопмент)": 1, "Городские легенды": 1, "DOM 7": 1, "На Некрасова": 1, "Тетро": 1, "Нагорный": 1, "Атлас Люксо": 0.95, "Clever Park": 1, "Никольский": 1, "Форма": 1, "Алиса": 0.99, "Библиотечная 41": 1, "Вэйвер": 1, "Динамика": 1, "Дом Культурный": 1, "Наука и искусство": 0.9, "Премиум Кварталы Маяковка": 0.98, "Проспект Мира. Компаунд": 1, "РАЗУМ на Малышева": 0.95, "Сибирский сад": 0.95, "Университи": 1, "Чаадаев": 0.9, "Атлас Лайн": 0.95, "Да на Амундсена": 1, "Да на Амундсена (Гринвич)": 1, "ДНК: Дом на Куйбышева": 1, "Исеть парк": 1, "Лайв": 0.9, "Милый дом (BAZA)": 0.99, "Московский квартал (Земельный ресурс)": 1, "Парк Культуры": 1, "Парк Столиц": 0.95, "Парковый квартал 2.0": 1, "Первый Южный": 1, "Ривьера. Айвазовский": 1, "Символ": 0.95, "Синица на Куйбышева": 1, "Соната Парк": 1, "Южные кварталы (Брусника)": 1, "Южные кварталы (Гринвич)": 1 };
+  const ROOMS = ["студия", "1", "2", "3", "4+"];
+  const ROOM_LABEL = { "студия": "Студия", "1": "1к", "2": "2к", "3": "3к", "4+": "4к+" };
+
+  let byProject = {};
+  ROWS.forEach(r => (byProject[r.p] = byProject[r.p] || []).push(r));
+  // замена данных после загрузки свежей выгрузки из таблицы
+  function setRows(rows) {
+    ROWS = rows; byProject = {};
+    ROWS.forEach(r => (byProject[r.p] = byProject[r.p] || []).push(r));
+    actualDates = uniq(ROWS.map(r => r.actual)).sort(); latest = actualDates[actualDates.length - 1];
+  }
+
+  // ---------- formatting ----------
+  const nf0 = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 });
+  const nf1 = new Intl.NumberFormat("ru-RU", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const nf2 = new Intl.NumberFormat("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const rub = n => n == null ? "—" : nf0.format(Math.round(n)) + " ₽";
+  const th = n => n == null ? "—" : nf1.format(n / 1000);
+  const mln = n => n == null ? "—" : nf2.format(n / 1e6);
+  const pct = (d, sign = true) => d == null || !isFinite(d) ? "—" : (sign && d > 0 ? "+" : d < 0 ? "−" : "") + nf1.format(Math.abs(d * 100)) + " %";
+  const ru = iso => iso ? iso.slice(8, 10) + "." + iso.slice(5, 7) + "." + iso.slice(0, 4) : "—";
+  const quarter = iso => { if (!iso) return "—"; const m = +iso.slice(5, 7); return ["I", "II", "III", "IV"][Math.floor((m - 1) / 3)] + " кв. " + iso.slice(0, 4); };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+  // ---------- state ----------
+  const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+  const initialG = (location.hash || "").slice(1);
+  // #deals, #deals-alisa, #deals-dmd2 открывают раздел сделок
+  const dealsHash = initialG.startsWith("deals");
+  const S = {
+    g: GROUPS[initialG] ? initialG : (GROUPS[store.get("cs.g")] ? store.get("cs.g") : "alisa"),
+    mode: dealsHash ? "deals" : "comp",
+    price: store.get("cs.price") === "list" ? "list" : "disc",
+    sort: ["ppm", "area", "budget", "name"].includes(store.get("cs.sort")) ? store.get("cs.sort") : "ppm",
+    floor: store.get("cs.floor") === "abs" ? "abs" : "idx",
+    anTol: [5, 10, 15, 20].includes(+store.get("cs.anTol")) ? +store.get("cs.anTol") : 10, anFlTol: [3, 5, 10, 999].includes(+store.get("cs.anFlTol")) ? +store.get("cs.anFlTol") : 5, anFin: false, anStage: false, lotTab: "ours", openLot: null,
+    sortOurs: { k: "delta", asc: false }, sortAll: { k: "ppm", asc: false },
+    rooms: null, finish: null, cls: null, stage: "all", at: null, floors: null, comps: null,
+    projSort: { key: "ppm", asc: false }, lotSort: { key: "ppm", asc: true }, lotLimit: 50
+  };
+  const budget = r => S.price === "disc" ? r.disc : r.price;
+  const ppmOf = r => budget(r) / r.area;
+
+  function groupRows(g) {
+    const G = GROUPS[g];
+    return [G.own].concat(G.comps).flatMap(p => byProject[p] || []);
+  }
+  function resetFilters() {
+    const rows = groupRows(S.g);
+    S.rooms = new Set(ROOMS.filter(x => rows.some(r => r.rooms === x)));
+    S.finish = new Set(uniq(rows.map(r => r.fl)));
+    S.cls = new Set(uniq(rows.map(r => r.cls)));
+    S.stage = "all";
+    S.at = new Set(areaTypes(rows));
+    S.floors = new Set(floorsOf(rows));
+    S.comps = new Set(GROUPS[S.g].comps.filter(p => byProject[p]));
+    S.lotLimit = 50;
+  }
+  function uniq(a) { return Array.from(new Set(a)).filter(x => x !== "" && x != null).sort((a, b) => String(a).localeCompare(String(b), "ru")); }
+  // Интервалы площади из столбца «Тип площади» (AG), по возрастанию; «вне диапазона» в конце
+  function areaKey(at) { const m = String(at).match(/(\d+)/); return m ? +m[1] : 9999; }
+  function areaTypes(rows) { return uniq(rows.map(r => r.at)).sort((a, b) => areaKey(a) - areaKey(b)); }
+  function floorsOf(rows) { return Array.from(new Set(rows.map(r => r.floor).filter(f => f != null))).sort((a, b) => a - b); }
+  // 1, 2, 3, 5, 7, 8 -> «1–3, 5, 7–8»
+  function compressFloors(fs) { const out = []; let i = 0; while (i < fs.length) { let j = i; while (j + 1 < fs.length && fs[j + 1] === fs[j] + 1) j++; out.push(j > i ? fs[i] + "–" + fs[j] : String(fs[i])); i = j + 1; } return out.join(", "); }
+
+  function passes(r) {
+    return S.rooms.has(r.rooms) && (S.finish.has(r.fl) || !r.fl) && S.cls.has(r.cls)
+      && (S.stage === "all" || r.st === S.stage)
+      && (S.at.has(r.at) || !r.at)
+      && (r.floor == null || S.floors.has(r.floor));
+  }
+
+  // ---------- stats ----------
+  function stats(list) {
+    if (!list || !list.length) return null;
+    let sb = 0, sa = 0, ex = 0, exn = 0;
+    const pp = [], aa = [], bb = [];
+    list.forEach(r => { const b = budget(r); sb += b; sa += r.area; pp.push(b / r.area); aa.push(r.area); bb.push(b); if (r.expo != null) { ex += r.expo; exn++; } });
+    const asc = (a, b) => a - b;
+    pp.sort(asc); aa.sort(asc); bb.sort(asc);
+    const n = list.length;
+    const med = a => n % 2 ? a[(n - 1) / 2] : (a[n / 2 - 1] + a[n / 2]) / 2;
+    return { n, ppm: sb / sa, min: pp[0], max: pp[n - 1], med: med(pp), budget: sb / n, area: sa / n,
+      aMin: aa[0], aMax: aa[n - 1], aMed: med(aa), bMin: bb[0], bMax: bb[n - 1], bMed: med(bb), expo: exn ? ex / exn : null };
+  }
+
+  // ---------- UI: tabs & filters ----------
+  function renderTabs() {
+    const el = document.getElementById("tabs");
+    if (S.mode === "deals") {
+      el.innerHTML = Object.entries(DOBJ).map(([k, O]) => `<button class="tab" role="tab" aria-selected="${k === DS.obj}" data-o="${k}">${esc(O.label)}<span class="cnt">${DEALS.filter(O.f).length}</span></button>`).join("");
+      el.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => { DS.obj = b.dataset.o; dealsReset(); try { history.replaceState(null, "", "#deals" + (DS.obj === "best" ? "" : "-" + DS.obj)); } catch (e) {} renderAll(); }));
+      return;
+    }
+    el.innerHTML = Object.entries(GROUPS).map(([k, G]) =>
+      `<button class="tab" role="tab" id="tab-${k}" aria-selected="${k === S.g}" data-g="${k}">${esc(G.label)}${byProject[G.own] ? `<span class="cnt">${byProject[G.own].length}</span>` : ""}</button>`).join("");
+    el.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => {
+      S.g = b.dataset.g; store.set("cs.g", S.g);
+      try { history.replaceState(null, "", "#" + S.g); } catch (e) {}
+      S.openLot = null; S.lotTab = "ours"; resetFilters(); renderAll();
+    }));
+  }
+
+  function chipGroup(id, values, set, labelFn) {
+    const el = document.getElementById(id);
+    el.innerHTML = values.map(v => `<button class="chip" type="button" aria-pressed="${set.has(v)}" data-v="${esc(v)}">${esc(labelFn ? labelFn(v) : v)}</button>`).join("");
+    el.querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => {
+      const v = b.dataset.v;
+      if (set.has(v)) set.delete(v); else set.add(v);
+      if (!set.size) values.forEach(x => set.add(x));
+      S.lotLimit = 50; renderAll();
+    }));
+  }
+  function segGroup(id, options, cur, onPick) {
+    const el = document.getElementById(id);
+    el.innerHTML = options.map(([v, l]) => `<button type="button" aria-pressed="${v === cur}" data-v="${esc(v)}">${esc(l)}</button>`).join("");
+    el.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { onPick(b.dataset.v); renderAll(); }));
+  }
+
+  function renderFilters() {
+    const rows = groupRows(S.g);
+    chipGroup("f-rooms", ROOMS.filter(x => rows.some(r => r.rooms === x)), S.rooms, v => ROOM_LABEL[v]);
+    chipGroup("f-finish", uniq(rows.map(r => r.fl)), S.finish);
+    chipGroup("f-class", uniq(rows.map(r => r.cls)), S.cls);
+    const stages = uniq(rows.map(r => r.st));
+    segGroup("f-stage", [["all", "Все"]].concat(stages.map(s => [s, s[0].toUpperCase() + s.slice(1)])), S.stage, v => { S.stage = v; S.lotLimit = 50; });
+    segGroup("f-price", [["disc", "Со скидкой и отделкой"], ["list", "Прайс"]], S.price, v => { S.price = v; store.set("cs.price", v); });
+    segGroup("f-sort", [["ppm", "Цена м²"], ["area", "Ср. площадь"], ["budget", "Бюджет"], ["name", "А–Я"]], S.sort, v => { S.sort = v; store.set("cs.sort", v); });
+
+    const G = GROUPS[S.g];
+    const panel = document.getElementById("f-comps-panel");
+    panel.innerHTML = `<div class="dd-actions"><button class="link-btn" type="button" data-a="all">Выбрать всех</button><button class="link-btn" type="button" data-a="none">Снять всех</button></div>` +
+      G.comps.map(p => {
+        const n = (byProject[p] || []).length;
+        return n ? `<label><input type="checkbox" data-p="${esc(p)}" ${S.comps.has(p) ? "checked" : ""}>${esc(p)}<span class="n">${n}</span></label>`
+                 : `<label class="off"><input type="checkbox" disabled>${esc(p)}<span class="n">нет лотов</span></label>`;
+      }).join("");
+    panel.querySelectorAll("input[data-p]").forEach(cb => cb.addEventListener("change", () => {
+      if (cb.checked) S.comps.add(cb.dataset.p); else S.comps.delete(cb.dataset.p);
+      S.lotLimit = 50; renderAll(true);
+    }));
+    panel.querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => {
+      S.comps = b.dataset.a === "all" ? new Set(G.comps.filter(p => byProject[p])) : new Set();
+      renderAll();
+    }));
+    const avail = G.comps.filter(p => byProject[p]).length;
+    document.getElementById("f-comps-sum").textContent = S.comps.size === avail ? `Все (${avail})` : `${S.comps.size} из ${avail}`;
+
+    // интервалы площади
+    const ats = areaTypes(rows);
+    const apanel = document.getElementById("f-area-panel");
+    apanel.innerHTML = `<div class="dd-actions"><button class="link-btn" type="button" data-a="all">Выбрать все</button><button class="link-btn" type="button" data-a="none">Снять все</button></div>` +
+      ats.map(a => `<label><input type="checkbox" data-at="${esc(a)}" ${S.at.has(a) ? "checked" : ""}>${esc(a === "вне диапазона" ? "Вне диапазона" : a + " м²")}<span class="n">${rows.filter(r => r.at === a).length}</span></label>`).join("");
+    apanel.querySelectorAll("input[data-at]").forEach(cb => cb.addEventListener("change", () => {
+      if (cb.checked) S.at.add(cb.dataset.at); else S.at.delete(cb.dataset.at);
+      S.lotLimit = 50; renderAll();
+    }));
+    apanel.querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => {
+      S.at = b.dataset.a === "all" ? new Set(ats) : new Set();
+      S.lotLimit = 50; renderAll();
+    }));
+    const picked = ats.filter(a => S.at.has(a));
+    document.getElementById("f-area-sum").textContent = picked.length === ats.length ? `Все (${ats.length})`
+      : !picked.length ? "Не выбрано"
+      : picked.length <= 2 ? picked.join(", ")
+      : `${picked[0]} … ${picked[picked.length - 1]} (${picked.length})`;
+
+    // этажи
+    const fls = floorsOf(rows);
+    const fpanel = document.getElementById("f-fl-panel");
+    fpanel.innerHTML = `<div class="dd-actions"><button class="link-btn" type="button" data-a="all">Выбрать все</button><button class="link-btn" type="button" data-a="none">Снять все</button></div>` +
+      fls.map(f => `<label><input type="checkbox" data-fl="${f}" ${S.floors.has(f) ? "checked" : ""}>${f} этаж<span class="n">${rows.filter(r => r.floor === f).length}</span></label>`).join("");
+    fpanel.querySelectorAll("input[data-fl]").forEach(cb => cb.addEventListener("change", () => {
+      const f = +cb.dataset.fl;
+      if (cb.checked) S.floors.add(f); else S.floors.delete(f);
+      S.openLot = null; renderAll();
+    }));
+    fpanel.querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => {
+      S.floors = b.dataset.a === "all" ? new Set(fls) : new Set();
+      S.openLot = null; renderAll();
+    }));
+    const fpicked = fls.filter(f => S.floors.has(f));
+    const fsum = compressFloors(fpicked);
+    document.getElementById("f-fl-sum").textContent = fpicked.length === fls.length ? `Все (${fls.length})`
+      : !fpicked.length ? "Не выбрано"
+      : fsum.length <= 16 ? fsum : `${fpicked.length} этаж.`;
+  }
+
+  document.getElementById("f-reset").addEventListener("click", () => { resetFilters(); renderAll(); });
+  document.addEventListener("click", e => { document.querySelectorAll("details.dd[open]").forEach(dd => { if (!dd.contains(e.target)) dd.open = false; }); });
+  // открываем список влево, если справа не хватает места
+  document.querySelectorAll("details.dd").forEach(dd => dd.addEventListener("toggle", () => {
+    const p = dd.querySelector(".dd-panel");
+    p.style.left = "0"; p.style.right = "auto";
+    if (dd.open && p.getBoundingClientRect().right > document.documentElement.clientWidth - 8) { p.style.left = "auto"; p.style.right = "0"; }
+  }));
+
+  // ---------- data view ----------
+  function view() {
+    const G = GROUPS[S.g];
+    const own = (byProject[G.own] || []).filter(passes);
+    const compsByP = {};
+    G.comps.forEach(p => { if (S.comps.has(p)) compsByP[p] = (byProject[p] || []).filter(passes); });
+    const compAll = Object.values(compsByP).flat();
+    return { G, own, compsByP, compAll, sOwn: stats(own), sComp: stats(compAll) };
+  }
+
+  // ---------- KPIs ----------
+  function renderKpis(V) {
+    const o = V.sOwn, c = V.sComp;
+    const rel = (a, b) => (a && b) ? a / b - 1 : null;
+    const dTxt = (d, more, less) => d == null ? "" : `<span class="d">${pct(d)}</span> ${d >= 0 ? more : less}`;
+    const projAvgs = Object.values(V.compsByP).map(stats).filter(Boolean).map(s => s.ppm);
+    if (!byProject[V.G.own]) {
+      const nP = Object.values(V.compsByP).filter(a => a.length).length;
+      const mt = [
+        { label: "Лотов в продаже · конкуренты", val: c ? nf0.format(c.n) : "0", sub: `в ${nP} проектах` },
+        { label: "Средняя цена м² · конкуренты", val: c ? th(c.ppm) : "—", unit: "тыс. ₽", sub: projAvgs.length ? `по проектам от ${th(Math.min(...projAvgs))} до ${th(Math.max(...projAvgs))} тыс. ₽` : "" },
+        { label: "Медиана цены м² · конкуренты", val: c ? th(c.med) : "—", unit: "тыс. ₽", sub: c ? `по лотам от ${th(c.min)} до ${th(c.max)} тыс. ₽` : "" },
+        { label: "Средний бюджет · конкуренты", val: c ? mln(c.budget) : "—", unit: "млн ₽", sub: c ? `медиана ${mln(c.bMed)} млн ₽` : "" },
+        { label: "Средняя площадь · конкуренты", val: c ? nf1.format(c.area) : "—", unit: "м²", sub: c ? `медиана ${nf1.format(c.aMed)} м²` : "" }
+      ];
+      document.getElementById("kpis").innerHTML = mt.map(t => `<div class="kpi"><span class="k-label">${esc(t.label)}</span><span class="k-val">${t.val}${t.unit && t.val !== "—" ? `<small>${t.unit}</small>` : ""}</span><span class="k-sub">${t.sub || "&nbsp;"}</span></div>`).join("");
+      return;
+    }
+    const tiles = [
+      { own: true, label: `Лотов в продаже · ${V.G.label}`, val: o ? nf0.format(o.n) : "0", sub: c ? `у конкурентов ${nf0.format(c.n)} в ${Object.values(V.compsByP).filter(a => a.length).length} проектах` : "конкуренты не выбраны" },
+      { own: true, label: "Средняя цена м² · наш проект", val: o ? th(o.ppm) : "—", unit: "тыс. ₽", sub: o && c ? dTxt(rel(o.ppm, c.ppm), "к среднему по конкурентам", "к среднему по конкурентам") : (o ? "" : "нет лотов при выбранных фильтрах") },
+      { label: "Средняя цена м² · конкуренты", val: c ? th(c.ppm) : "—", unit: "тыс. ₽", sub: projAvgs.length ? `по проектам от ${th(Math.min(...projAvgs))} до ${th(Math.max(...projAvgs))} тыс. ₽` : "" },
+      { own: true, label: "Средний бюджет · наш проект", val: o ? mln(o.budget) : "—", unit: "млн ₽", sub: c ? `у конкурентов ${mln(c.budget)} млн ₽` + (o ? ` (${pct(rel(o.budget, c.budget))})` : "") : "" },
+      { own: true, label: "Средняя площадь · наш проект", val: o ? nf1.format(o.area) : "—", unit: "м²", sub: c ? `у конкурентов ${nf1.format(c.area)} м²` : "" }
+    ];
+    document.getElementById("kpis").innerHTML = tiles.map(t =>
+      `<div class="kpi${t.own ? " own" : ""}"><span class="k-label">${esc(t.label)}</span><span class="k-val">${t.val}${t.unit && t.val !== "—" ? `<small>${t.unit}</small>` : ""}</span><span class="k-sub">${t.sub || "&nbsp;"}</span></div>`).join("");
+  }
+
+  // ---------- charts ----------
+  const charts = {};
+  function kill(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+  function baseOpts() {
+    const ink2 = cssv("--ink-2"), muted = cssv("--muted"), line = cssv("--line"), surface = cssv("--surface"), ink = cssv("--ink");
+    Chart.defaults.font.family = cssv("--font-ui").split(",")[0].replace(/"/g, "") + ", system-ui, sans-serif";
+    Chart.defaults.font.size = 12;
+    Chart.defaults.color = muted;
+    const o = {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: {
+        legend: { labels: { color: ink2, usePointStyle: true, boxWidth: 8, boxHeight: 8, padding: 14 } },
+        tooltip: { backgroundColor: surface, titleColor: ink, bodyColor: ink2, borderColor: line, borderWidth: 1, padding: 10, cornerRadius: 8, boxPadding: 4, titleFont: { weight: "600" }, displayColors: true }
+      }
+    };
+    // theme colors ride along as non-enumerable props, so Object.assign into chart options skips them
+    Object.defineProperties(o, { grid: { value: line }, ink: { value: ink }, ink2: { value: ink2 }, muted: { value: muted } });
+    return o;
+  }
+  const endLabels = {
+    id: "endLabels",
+    afterDatasetsDraw(chart, args, opts) {
+      const { ctx } = chart;
+      ctx.save();
+      ctx.font = `500 12px ${Chart.defaults.font.family}`;
+      ctx.fillStyle = opts.color; ctx.textBaseline = "middle";
+      chart.getDatasetMeta(0).data.forEach((bar, i) => {
+        const v = chart.data.datasets[0].data[i];
+        if (v == null) return;
+        ctx.fillText(opts.fmt(v), bar.x + 6, bar.y);
+      });
+      ctx.restore();
+    }
+  };
+
+  // Горизонтальный рейтинг проектов по одному показателю: наш проект красным, среднее по конкурентам тёмно-синим
+  const RANKS = {
+    bar: { box: "box-bar", get: s => s.ppm, fmt: th, tick: v => nf0.format(v / 1000),
+      tip: s => [`Средняя: ${th(s.ppm)} тыс. ₽/м²`, `Медиана: ${th(s.med)} · мин ${th(s.min)} · макс ${th(s.max)}`] },
+    area: { box: "box-area", get: s => s.area, fmt: v => nf1.format(v), tick: v => nf0.format(v),
+      tip: s => [`Средняя площадь: ${nf1.format(s.area)} м²`, `Медиана: ${nf1.format(s.aMed)} · мин ${nf1.format(s.aMin)} · макс ${nf1.format(s.aMax)} м²`] },
+    budget: { box: "box-budget", get: s => s.budget, fmt: mln, tick: v => nf0.format(v / 1e6),
+      tip: s => [`Средний бюджет: ${mln(s.budget)} млн ₽`, `Медиана: ${mln(s.bMed)} · мин ${mln(s.bMin)} · макс ${mln(s.bMax)} млн ₽`] }
+  };
+  // Единый порядок проектов для всех диаграмм и матрицы: по выбранному показателю (по убыванию) или по названию; «Среднее по конкурентам» при сортировке А–Я идёт последним
+  const SORT_GET = { ppm: s => s.ppm, area: s => s.area, budget: s => s.budget };
+  function byOrder(a, b) {
+    if (S.sort === "name") return (!!a.mkt - !!b.mkt) || a.p.localeCompare(b.p, "ru");
+    const g = SORT_GET[S.sort]; return g(b.s) - g(a.s);
+  }
+  function orderItems(items) { return items.sort(byOrder); }
+  // перенос длинного названия на две строки, чтобы подписи помещались в узкой карточке
+  function wrapLabel(p, max) {
+    if (p.length <= max) return [p];
+    const words = p.split(" "); const lines = [""];
+    words.forEach(w => { const cur = lines[lines.length - 1]; if (cur && (cur + " " + w).length > max && lines.length < 2) lines.push(w); else lines[lines.length - 1] = cur ? cur + " " + w : w; });
+    return lines.map(l => l.length > max + 6 ? l.slice(0, max + 4) + "…" : l);
+  }
+  function renderRank(key, V) {
+    const cfg = RANKS[key];
+    kill(key);
+    const items = [];
+    if (V.sOwn) items.push({ p: V.G.own, s: V.sOwn, own: true });
+    Object.entries(V.compsByP).forEach(([p, l]) => { const s = stats(l); if (s) items.push({ p, s }); });
+    if (V.sComp) items.push({ p: "Среднее по конкурентам", s: V.sComp, mkt: true });
+    orderItems(items);
+    const box = document.getElementById(cfg.box);
+    box.style.height = Math.max(160, items.length * (items.some(i => wrapLabel(i.p, 18).length > 1) ? 36 : 30) + 40) + "px";
+    if (!items.length) { box.innerHTML = `<div class="empty">Нет лотов при выбранных фильтрах</div>`; return; }
+    if (!box.querySelector("canvas")) box.innerHTML = `<canvas></canvas>`;
+    const B = baseOpts();
+    const own = cssv("--own"), mkt = cssv("--market"), comp = cssv("--comp");
+    const ownV = V.sOwn ? cfg.get(V.sOwn) : null;
+    charts[key] = new Chart(box.querySelector("canvas"), {
+      type: "bar",
+      data: {
+        labels: items.map(i => wrapLabel(i.p, 18)),
+        datasets: [{ data: items.map(i => cfg.get(i.s)), backgroundColor: items.map(i => i.own ? own : i.mkt ? mkt : comp), borderRadius: { topRight: 4, bottomRight: 4 }, borderSkipped: "start", barPercentage: .78, categoryPercentage: .9 }]
+      },
+      options: Object.assign({}, B, {
+        indexAxis: "y", layout: { padding: { right: 48 } },
+        scales: {
+          x: { beginAtZero: true, grid: { color: B.grid }, border: { display: false }, ticks: { callback: cfg.tick } },
+          y: { grid: { display: false }, border: { color: B.grid }, ticks: { color: B.ink2, font: ctx => ({ weight: items[ctx.index] && items[ctx.index].own ? "700" : "400" }) } }
+        },
+        plugins: {
+          legend: { display: false },
+          endLabels: { color: B.ink2, fmt: cfg.fmt },
+          tooltip: Object.assign({}, B.plugins.tooltip, {
+            displayColors: false,
+            callbacks: {
+              title: c => items[c[0].dataIndex].p,
+              label: c => {
+                const it = items[c.dataIndex];
+                const out = cfg.tip(it.s).concat([`Лотов: ${nf0.format(it.s.n)}`]);
+                if (ownV && !it.own) out.push(`К нашему проекту: ${pct(cfg.get(it.s) / ownV - 1)}`);
+                return out;
+              }
+            }
+          })
+        }
+      }),
+      plugins: [endLabels]
+    });
+  }
+  function renderBar(V) {
+    document.getElementById("sub-bar").textContent = `Цена ${S.price === "disc" ? "со скидкой и корректировкой на отделку" : "по прайсу"}, тыс. ₽/м²`;
+    document.getElementById("sub-budget").textContent = `Средний бюджет лота ${S.price === "disc" ? "со скидкой и корректировкой на отделку" : "по прайсу"}, млн ₽`;
+    renderRank("bar", V); renderRank("area", V); renderRank("budget", V);
+  }
+
+  // ---------- общие помощники для новых диаграмм ----------
+  const EMPTY = `<div class="empty">Нет лотов при выбранных фильтрах</div>`;
+  const shortName = p => p.length > 30 ? p.slice(0, 28) + "…" : p;
+  const priceMode = () => S.price === "disc" ? "со скидкой и корректировкой на отделку" : "по прайсу";
+  // наш проект первым, конкуренты в порядке выбранной сортировки
+  function projectItems(V) {
+    const comps = Object.entries(V.compsByP).filter(([, l]) => l.length).map(([p, l]) => ({ p, list: l, s: stats(l) })).sort(byOrder);
+    return (V.own.length ? [{ p: V.G.own, list: V.own, s: V.sOwn, own: true }] : []).concat(comps);
+  }
+  function canvasIn(box) { if (!box.querySelector("canvas")) box.innerHTML = "<canvas></canvas>"; return box.querySelector("canvas"); }
+  const yTicksBold = (B, items) => ({ color: B.ink2, font: ctx => ({ weight: items[ctx.index] && items[ctx.index].own ? "700" : "400" }) });
+
+  // ---------- экспозиция: диапазон бюджетов ----------
+  function renderRange(V) {
+    kill("range");
+    const items = projectItems(V);
+    const box = document.getElementById("box-range");
+    document.getElementById("sub-range").textContent = `От самого дешёвого до самого дорогого лота в продаже, млн ₽, цена ${priceMode()}. Наведите на строку, чтобы увидеть медиану и средний бюджет`;
+    box.style.height = Math.max(160, items.length * 32 + 50) + "px";
+    if (!items.length) { box.innerHTML = EMPTY; return; }
+    const B = baseOpts();
+    const own = cssv("--own"), rng = cssv("--range");
+    const rangeLabels = {
+      id: "rangeLabels",
+      afterDatasetsDraw(chart) {
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.font = `500 12px ${Chart.defaults.font.family}`;
+        ctx.fillStyle = B.ink2; ctx.textBaseline = "middle";
+        chart.getDatasetMeta(0).data.forEach((bar, i) => {
+          const [lo, hi] = chart.data.datasets[0].data[i];
+          const x0 = Math.min(bar.x, bar.base), x1 = Math.max(bar.x, bar.base);
+          ctx.textAlign = "right"; ctx.fillText(nf1.format(lo), x0 - 6, bar.y);
+          ctx.textAlign = "left"; ctx.fillText(nf1.format(hi), x1 + 6, bar.y);
+        });
+        ctx.restore();
+      }
+    };
+    charts.range = new Chart(canvasIn(box), {
+      type: "bar",
+      data: {
+        labels: items.map(i => shortName(i.p)),
+        datasets: [{ data: items.map(i => [i.s.bMin / 1e6, i.s.bMax / 1e6]), backgroundColor: items.map(i => i.own ? own : rng), borderRadius: 4, borderSkipped: false, barPercentage: .78, categoryPercentage: .9 }]
+      },
+      options: Object.assign({}, B, {
+        indexAxis: "y", layout: { padding: { right: 44 } },
+        scales: {
+          x: { min: 0, grid: { color: B.grid }, border: { display: false }, ticks: { callback: v => nf0.format(v) }, title: { display: true, text: "млн ₽", color: B.muted } },
+          y: { grid: { display: false }, border: { color: B.grid }, ticks: yTicksBold(B, items) }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: Object.assign({}, B.plugins.tooltip, { displayColors: false, callbacks: {
+            title: c => items[c[0].dataIndex].p,
+            label: c => { const s = items[c.dataIndex].s; return [`От ${mln(s.bMin)} до ${mln(s.bMax)} млн ₽`, `Медиана: ${mln(s.bMed)} млн ₽`, `Средний бюджет: ${mln(s.budget)} млн ₽`, `Лотов: ${nf0.format(s.n)}`]; }
+          } })
+        }
+      }),
+      plugins: [rangeLabels]
+    });
+  }
+
+  // ---------- премия за этаж ----------
+  const FLOOR_GROUPS = [[1, 1, "1"], [2, 3, "2–3"], [4, 6, "4–6"], [7, 9, "7–9"], [10, 12, "10–12"], [13, 16, "13–16"], [17, 20, "17–20"], [21, 25, "21–25"], [26, 999, "26+"]];
+  const floorGroup = f => FLOOR_GROUPS.findIndex(([a, b]) => f >= a && f <= b);
+  // отклонение цены м² группы этажей от средней по проекту; для конкурентов — среднее по проектам, взвешенное по лотам
+  function floorIndex(lists) {
+    const acc = FLOOR_GROUPS.map(() => ({ w: 0, v: 0 }));
+    lists.forEach(L => {
+      const base = stats(L); if (!base) return;
+      FLOOR_GROUPS.forEach((g, i) => {
+        const s = stats(L.filter(r => floorGroup(r.floor) === i));
+        if (s) { acc[i].w += s.n; acc[i].v += s.n * (s.ppm / base.ppm - 1); }
+      });
+    });
+    return acc.map(a => a.w ? { v: a.v / a.w, n: a.w } : null);
+  }
+  function floorAbs(list) { return FLOOR_GROUPS.map((g, i) => { const s = stats(list.filter(r => floorGroup(r.floor) === i)); return s ? { v: s.ppm, n: s.n } : null; }); }
+  function renderFloor(V) {
+    kill("floor");
+    segGroup("f-floor", [["idx", "% к средней"], ["abs", "₽/м²"]], S.floor, v => { S.floor = v; store.set("cs.floor", v); });
+    const idx = S.floor === "idx";
+    document.getElementById("sub-floor").textContent = idx
+      ? "Отклонение цены м² на группе этажей от средней цены м² своего проекта. У конкурентов — среднее отклонение по их проектам, взвешенное по числу лотов"
+      : "Средняя цена м² по группам этажей, тыс. ₽. У конкурентов смешаны проекты разной этажности, поэтому для оценки премии точнее режим «% к средней»";
+    const ownS = idx ? floorIndex([V.own]) : floorAbs(V.own);
+    const compS = idx ? floorIndex(Object.values(V.compsByP).filter(l => l.length)) : floorAbs(V.compAll);
+    const keep = FLOOR_GROUPS.map((g, i) => ownS[i] || compS[i]);
+    const labels = FLOOR_GROUPS.filter((g, i) => keep[i]).map(g => g[2]);
+    const pick = arr => arr.filter((x, i) => keep[i]);
+    const o = pick(ownS), c = pick(compS);
+    const B = baseOpts();
+    const own = cssv("--own"), mkt = cssv("--market"), surface = cssv("--surface");
+    const fmtV = v => idx ? pct(v) : th(v) + " тыс. ₽/м²";
+    charts.floor = new Chart(document.getElementById("ch-floor"), {
+      type: "line",
+      data: { labels, datasets: [
+        { label: "Конкуренты", data: c.map(x => x ? x.v : null), borderColor: mkt, backgroundColor: mkt, borderWidth: 2, pointRadius: 3.5, pointHoverRadius: 5, pointBorderColor: surface, pointBorderWidth: 2, cubicInterpolationMode: "monotone", spanGaps: true },
+        ...(byProject[V.G.own] ? [{ label: V.G.label, data: o.map(x => x ? x.v : null), borderColor: own, backgroundColor: own, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6, pointBorderColor: surface, pointBorderWidth: 2, cubicInterpolationMode: "monotone", spanGaps: true }] : [])
+      ] },
+      options: Object.assign({}, B, {
+        interaction: { mode: "index", intersect: false },
+        scales: {
+          x: { grid: { display: false }, border: { color: B.grid }, title: { display: true, text: "Этаж", color: B.muted } },
+          y: { grid: { color: ctx => idx && ctx.tick && ctx.tick.value === 0 ? cssv("--line-strong") : B.grid, lineWidth: ctx => idx && ctx.tick && ctx.tick.value === 0 ? 1.5 : 1 }, border: { display: false },
+            ticks: { callback: v => idx ? (v > 0 ? "+" : v < 0 ? "−" : "") + nf0.format(Math.abs(v * 100)) + " %" : nf0.format(v / 1000) },
+            title: { display: true, text: idx ? "к средней цене м² проекта" : "тыс. ₽/м²", color: B.muted } }
+        },
+        plugins: {
+          legend: B.plugins.legend,
+          tooltip: Object.assign({}, B.plugins.tooltip, { filter: it => it.raw != null, callbacks: {
+            title: c2 => `Этажи ${c2[0].label}`,
+            label: c2 => { const src = c2.datasetIndex === 1 ? o : c; const x = src[c2.dataIndex]; return `${c2.dataset.label}: ${fmtV(x.v)} (${x.n} лот.)`; }
+          } })
+        }
+      })
+    });
+    // выводы: первый этаж и верхняя группа относительно средней
+    const parts = [];
+    const oi = floorIndex([V.own]), ci = floorIndex(Object.values(V.compsByP).filter(l => l.length));
+    const topIdx = arr => { for (let i = arr.length - 1; i >= 0; i--) if (arr[i] && arr[i].n >= 3) return i; return -1; };
+    if (!byProject[V.G.own]) { if (ci[0]) parts.push(`Первый этаж у конкурентов к средней цене м² проекта: <b>${pct(ci[0].v)}</b>`); }
+    else if (oi[0] || ci[0]) parts.push(`Первый этаж к средней цене м²: у нас ${oi[0] ? "<b>" + pct(oi[0].v) + "</b>" : "нет лотов"}, у конкурентов ${ci[0] ? "<b>" + pct(ci[0].v) + "</b>" : "нет лотов"}`);
+    const ot = topIdx(oi), ct = topIdx(ci);
+    if (ot > 0) parts.push(`верхние этажи у нас (${FLOOR_GROUPS[ot][2]}) <b>${pct(oi[ot].v)}</b>`);
+    if (ct > 0) parts.push(`у конкурентов (${FLOOR_GROUPS[ct][2]}) <b>${pct(ci[ct].v)}</b>`);
+    document.getElementById("ins-floor").innerHTML = parts.length ? parts.join("; ") + "." : "";
+  }
+
+  // ---------- структура предложения (100 %) ----------
+  const MIX = [["студия", "Студии", r => r.rooms === "студия"], ["1", "1к", r => r.rooms === "1"], ["2", "2к", r => r.rooms === "2"], ["3+", "3к+", r => r.rooms === "3" || r.rooms === "4+"]];
+  function renderMix(V) {
+    kill("mix");
+    const items = projectItems(V);
+    const box = document.getElementById("box-mix");
+    box.style.height = Math.max(160, items.length * 30 + 70) + "px";
+    if (!items.length) { box.innerHTML = EMPTY; return; }
+    const B = baseOpts();
+    const cols = ["--r1", "--r2", "--r3", "--r5"].map(cssv), surface = cssv("--surface");
+    const counts = items.map(i => MIX.map(m => i.list.filter(m[2]).length));
+    const segLabels = {
+      id: "segLabels",
+      afterDatasetsDraw(chart) {
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.font = `500 11px ${Chart.defaults.font.family}`;
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        chart.data.datasets.forEach((d, di) => {
+          const meta = chart.getDatasetMeta(di); if (meta.hidden) return;
+          meta.data.forEach((bar, i) => {
+            const v = d.data[i]; const w = Math.abs(bar.x - bar.base);
+            if (!v || w < 30) return;
+            ctx.fillStyle = di >= 2 ? "#FFFFFF" : B.ink;
+            ctx.fillText(nf0.format(v) + "%", (bar.x + bar.base) / 2, bar.y);
+          });
+        });
+        ctx.restore();
+      }
+    };
+    charts.mix = new Chart(canvasIn(box), {
+      type: "bar",
+      data: {
+        labels: items.map(i => shortName(i.p)),
+        datasets: MIX.map((m, mi) => ({ label: m[1], data: counts.map(cn => { const n = cn.reduce((a, b) => a + b, 0); return n ? cn[mi] / n * 100 : 0; }), backgroundColor: cols[mi], borderColor: surface, borderWidth: { right: 2, left: 0, top: 0, bottom: 0 }, borderSkipped: false, barPercentage: .8, categoryPercentage: .9 }))
+      },
+      options: Object.assign({}, B, {
+        indexAxis: "y",
+        scales: {
+          x: { stacked: true, min: 0, max: 100, grid: { color: B.grid }, border: { display: false }, ticks: { callback: v => v + " %" } },
+          y: { stacked: true, grid: { display: false }, border: { color: B.grid }, ticks: yTicksBold(B, items) }
+        },
+        plugins: {
+          legend: Object.assign({}, B.plugins.legend, { labels: Object.assign({}, B.plugins.legend.labels, { usePointStyle: false, boxWidth: 12, boxHeight: 12 }) }),
+          tooltip: Object.assign({}, B.plugins.tooltip, { callbacks: {
+            title: c => items[c[0].dataIndex].p,
+            label: c => `${c.dataset.label}: ${nf1.format(c.raw)} % (${counts[c.dataIndex][c.datasetIndex]} лот.)`
+          } })
+        }
+      }),
+      plugins: [segLabels]
+    });
+  }
+
+  function renderLine(V) {
+    kill("line");
+    const all = V.own.concat(V.compAll);
+    const cats = uniq(all.map(r => r.at)).sort((a, b) => areaKey(a) - areaKey(b));
+    const B = baseOpts();
+    const ownS = cats.map(c => { const s = stats(V.own.filter(r => r.at === c)); return s ? s.ppm : null; });
+    const mktS = cats.map(c => { const s = stats(V.compAll.filter(r => r.at === c)); return s ? s.ppm : null; });
+    const projByCat = cats.map(c => Object.values(V.compsByP).map(l => stats(l.filter(r => r.at === c))).filter(Boolean).map(s => s.ppm));
+    const lo = projByCat.map(a => a.length ? Math.min(...a) : null), hi = projByCat.map(a => a.length ? Math.max(...a) : null);
+    const own = cssv("--own"), mkt = cssv("--market"), band = cssv("--band"), surface = cssv("--surface");
+    const cnt = (list, c) => list.filter(r => r.at === c).length;
+    charts.line = new Chart(document.getElementById("ch-line"), {
+      type: "line",
+      data: {
+        labels: cats,
+        datasets: [
+          { label: "Мин. среди конкурентов", data: lo, borderWidth: 0, pointRadius: 0, pointHitRadius: 0, fill: false, backgroundColor: band, borderColor: "transparent" },
+          { label: "Разброс конкурентов", data: hi, borderWidth: 0, pointRadius: 0, pointHitRadius: 0, fill: "-1", backgroundColor: band, borderColor: "transparent" },
+          { label: "Среднее по конкурентам", data: mktS, borderColor: mkt, backgroundColor: mkt, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, pointBorderColor: surface, pointBorderWidth: 2, cubicInterpolationMode: "monotone", spanGaps: true },
+          ...(byProject[V.G.own] ? [{ label: V.G.label, data: ownS, borderColor: own, backgroundColor: own, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6, pointBorderColor: surface, pointBorderWidth: 2, cubicInterpolationMode: "monotone", spanGaps: true }] : [])
+        ]
+      },
+      options: Object.assign({}, B, {
+        interaction: { mode: "index", intersect: false },
+        scales: {
+          x: { grid: { display: false }, border: { color: B.grid }, title: { display: true, text: "Площадь, м²", color: B.muted } },
+          y: { grid: { color: B.grid }, border: { display: false }, ticks: { callback: v => nf0.format(v / 1000) }, title: { display: true, text: "тыс. ₽/м²", color: B.muted } }
+        },
+        plugins: {
+          legend: Object.assign({}, B.plugins.legend, { labels: Object.assign({}, B.plugins.legend.labels, { filter: it => it.datasetIndex !== 0 }) }),
+          tooltip: Object.assign({}, B.plugins.tooltip, {
+            filter: it => it.datasetIndex >= 2 && it.raw != null,
+            callbacks: {
+              title: c => `${c[0].label} м²`,
+              label: c => `${c.dataset.label}: ${th(c.raw)} тыс. ₽/м² (${c.datasetIndex === 3 ? cnt(V.own, c.label) : cnt(V.compAll, c.label)} лот.)`,
+              afterBody: c => { const i = c[0].dataIndex; return lo[i] != null ? `Конкуренты по проектам: ${th(lo[i])}–${th(hi[i])}` : ""; }
+            }
+          })
+        }
+      })
+    });
+  }
+
+  function renderScatter(V) {
+    kill("scatter");
+    const B = baseOpts();
+    const own = cssv("--own"), compPt = cssv("--comp-pt"), surface = cssv("--surface");
+    const pt = r => ({ x: r.area, y: budget(r) / 1e6, r });
+    charts.scatter = new Chart(document.getElementById("ch-scatter"), {
+      type: "scatter",
+      data: { datasets: [
+        { label: "Конкуренты", data: V.compAll.map(pt), backgroundColor: compPt, borderWidth: 0, pointRadius: 3, pointHoverRadius: 5 },
+        ...(byProject[V.G.own] ? [{ label: V.G.label, data: V.own.map(pt), backgroundColor: own, borderColor: surface, borderWidth: 1.5, pointRadius: 4.5, pointHoverRadius: 6 }] : [])
+      ] },
+      options: Object.assign({}, B, {
+        scales: {
+          x: { grid: { color: B.grid }, border: { display: false }, title: { display: true, text: "Площадь, м²", color: B.muted } },
+          y: { grid: { color: B.grid }, border: { display: false }, title: { display: true, text: `Бюджет${S.price === "disc" ? " со скидкой" : ""}, млн ₽`, color: B.muted } }
+        },
+        plugins: {
+          legend: B.plugins.legend,
+          tooltip: Object.assign({}, B.plugins.tooltip, { callbacks: {
+            title: c => c[0].raw.r.p,
+            label: c => { const r = c.raw.r; return [`${ROOM_LABEL[r.rooms] || r.rooms}, ${nf1.format(r.area)} м², этаж ${r.floor ?? "—"}`, `Бюджет: ${mln(budget(r))} млн ₽`, `Цена м²: ${th(ppmOf(r))} тыс. ₽`, `Отделка: ${r.fl || "—"}`]; }
+          } })
+        }
+      })
+    });
+  }
+
+  // ---------- tables ----------
+  function tint(d) {
+    if (d == null) return "";
+    if (d <= -0.10) return "c3"; if (d <= -0.05) return "c2"; if (d < -0.01) return "c1";
+    if (d >= 0.10) return "w3"; if (d >= 0.05) return "w2"; if (d > 0.01) return "w1"; return "";
+  }
+  function renderMatrix(V) {
+    const cols = ROOMS.filter(x => S.rooms.has(x));
+    const ownBy = {}; cols.forEach(c => ownBy[c] = stats(V.own.filter(r => r.rooms === c)));
+    const ownAll = V.sOwn;
+    const rows = (byProject[V.G.own] ? [{ p: V.G.own, list: V.own, own: true }] : []).concat(
+      Object.entries(V.compsByP).filter(([, l]) => l.length).map(([p, l]) => ({ p, list: l, s: stats(l) })).sort(byOrder));
+    rows.push({ p: "Среднее по конкурентам", list: V.compAll, mkt: true });
+    const cell = (list, base, isOwn) => {
+      const s = stats(list);
+      if (!s) return `<td class="cell">—</td>`;
+      const d = !isOwn && base ? s.ppm / base.ppm - 1 : null;
+      const tip = `${s.n} лот. · мин ${th(s.min)} · макс ${th(s.max)} тыс. ₽/м²`;
+      return `<td class="cell ${tint(d)}" title="${esc(tip)}">${th(s.ppm)}<span class="sm">${d != null ? pct(d) + " · " : ""}${s.n} лот.</span></td>`;
+    };
+    const head = `<thead><tr><th class="l">Проект</th>${cols.map(c => `<th>${ROOM_LABEL[c]}</th>`).join("")}<th>Все</th></tr></thead>`;
+    const body = rows.map(R => `<tr class="${R.own ? "own-row" : R.mkt ? "mkt-row" : ""}"><td>${esc(R.p)}</td>${cols.map(c => cell(R.list.filter(r => r.rooms === c), ownBy[c], R.own)).join("")}${cell(R.list, ownAll, R.own)}</tr>`).join("");
+    document.getElementById("tbl-matrix").innerHTML = head + `<tbody>${body}</tbody>`;
+    document.getElementById("lg-own").hidden = !byProject[V.G.own];
+  }
+
+
+  // ---------- header & notes ----------
+  let actualDates = uniq(ROWS.map(r => r.actual)).sort();
+  let latest = actualDates[actualDates.length - 1];
+  document.getElementById("asof").textContent = `Екатеринбург · цены на ${ru(latest)}`;
+
+  function renderNote(V) {
+    const parts = [];
+    if (!byProject[V.G.own]) parts.push(`<b>${esc(V.G.label)}:</b> наших лотов в продаже нет, показаны только конкуренты локации.`);
+    else if (!V.own.length) parts.push(`<b>${esc(V.G.label)}:</b> нет лотов при выбранных фильтрах, сравнение с нашим проектом недоступно.`);
+    else if (V.own.length < 5) parts.push(`<b>${esc(V.G.label)}:</b> в продаже ${V.own.length} ${V.own.length === 1 ? "лот" : "лота"}, средние по проекту опираются на очень малую выборку.`);
+    document.getElementById("note").innerHTML = parts.join(" ");
+    document.getElementById("note").hidden = !parts.length;
+  }
+
+  function renderMethod() {
+  const datesTxt = actualDates.length > 1 ? actualDates.slice(0, -1).map(ru).join(", ") + " и " + ru(actualDates[actualDates.length - 1]) : ru(actualDates[0]);
+  const srcTxt = LIVE.ok ? `Данные загружены из таблицы при открытии страницы (${LIVE.at.toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}), цены актуальны на ${datesTxt}.` : window.BUILT_AT ? `Данные обновляются автоматически каждый день, последнее изменение ${window.BUILT_AT}. Цены актуальны на ${datesTxt}.` : `Снимок выгрузки от 05.10.2026, цены актуальны на ${datesTxt}.`;
+  document.getElementById("method").innerHTML = [
+    `<div><b>Источник.</b> Google-таблица «Копия Алиса: план, дцо, прайс»: лист «Конкуренты рабочая» (${nf0.format(ROWS.length)} лотов, только квартиры) и состав конкурентов по каждому проекту с листа «справочник индексов». ${srcTxt}</div>`,
+    `<div><b>Цена со скидкой и отделкой</b> берётся из столбца «Цена со скидкой»: прайс, умноженный на коэффициент скидки проекта, плюс корректировка на отделку. В режиме «Прайс» используется цена предложения без скидки.</div>`,
+    `<div><b>Средняя цена м²</b> считается как сумма бюджетов, делённая на сумму площадей (взвешено по площади). Мин., макс. и медиана считаются по ценам м² отдельных лотов. Комнатность по данным Объектива, площадь сводная. Интервалы площади в фильтре взяты из столбца «Тип площади».</div>`
+  ].join("");
+  }
+
+  // ---------- наши лоты и аналоги ----------
+  const PAR = 0.02; // паритет ±2 %
+  const fp = d => (Math.abs(d) < 0.0005 ? "" : d > 0 ? "+" : "−") + nf1.format(Math.abs(d * 100)) + " %";
+  function pill(d, word) {
+    if (d == null || !isFinite(d)) return `<span class="pill na">нет аналогов</span>`;
+    const cls = d > PAR ? "dear" : d < -PAR ? "cheap" : "par";
+    const w = d > PAR ? "дороже" : d < -PAR ? "дешевле" : "паритет";
+    const ic = d > PAR ? "▲" : d < -PAR ? "▼" : "≈";
+    return `<span class="pill ${cls}">${ic} ${fp(d)}${word === false ? "" : " " + w}</span>`;
+  }
+  function medianOf(xs) { if (!xs.length) return null; const s = xs.slice().sort((a, b) => a - b); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
+  function analogsOf(o, comp) {
+    const t = S.anTol / 100;
+    const ft = S.anFlTol;
+    return comp.filter(c => c.rooms === o.rooms && Math.abs(c.area - o.area) / o.area <= t
+      && (ft >= 999 || (c.floor != null && o.floor != null && Math.abs(c.floor - o.floor) <= ft))
+      && (!S.anFin || c.fl === o.fl) && (!S.anStage || c.st === o.st));
+  }
+  const lotId = r => r.p + "|" + r.k + "|" + r.lot + "|" + r.floor + "|" + r.area;
+  const stageWord = st => st === "сдан" ? "сдан" : "строится";
+  function sortBy(rows, s, get) {
+    rows.sort((a, b) => {
+      const x = get(a, s.k), y = get(b, s.k);
+      if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1;
+      const r = typeof x === "string" ? x.localeCompare(y, "ru", { numeric: true }) : x - y;
+      return s.asc ? r : -r;
+    });
+  }
+  const thS = (k, label, s, cls) => `<th class="sortable${cls ? " " + cls : ""}${s.k === k ? " sorted" + (s.asc ? " asc" : "") : ""}" data-k="${k}" tabindex="0">${label}</th>`;
+
+  function renderAnalogs(V) {
+    segGroup("an-tol", [["5", "±5 %"], ["10", "±10 %"], ["15", "±15 %"], ["20", "±20 %"]], String(S.anTol), v => { S.anTol = +v; S.openLot = null; store.set("cs.anTol", v); });
+    segGroup("an-fltol", [["3", "3"], ["5", "5"], ["10", "10"], ["999", "любой"]], String(S.anFlTol), v => { S.anFlTol = +v; S.openLot = null; store.set("cs.anFlTol", v); });
+    document.getElementById("an-fin").checked = S.anFin;
+    document.getElementById("an-stage").checked = S.anStage;
+    const noOwn = !byProject[V.G.own];
+    if (noOwn) S.lotTab = "all";
+    document.getElementById("tab-ours").hidden = noOwn;
+    document.getElementById("tab-ours").setAttribute("aria-selected", S.lotTab === "ours");
+    document.getElementById("tab-all").setAttribute("aria-selected", S.lotTab === "all");
+    document.getElementById("an-controls").hidden = S.lotTab !== "ours";
+    const tbl = document.getElementById("tbl-an"), hint = document.getElementById("an-hint"), ins = document.getElementById("an-ins");
+    const comp = V.compAll;
+
+    if (S.lotTab === "ours") {
+      const rows = V.own.map(l => { const an = analogsOf(l, comp); const med = an.length ? medianOf(an.map(ppmOf)) : null; return { l, an, med, delta: med ? ppmOf(l) / med - 1 : null }; });
+      const s = S.sortOurs;
+      sortBy(rows, s, (x, k) => ({ corp: x.l.k + " " + x.l.lot, floor: x.l.floor, r: ROOMS.indexOf(x.l.rooms), area: x.l.area, fin: x.l.fl, price: budget(x.l), ppm: ppmOf(x.l), n: x.an.length, med: x.med, delta: x.delta }[k]));
+      const cond = `та же комнатность, площадь ±${S.anTol} %${S.anFlTol < 999 ? `, этаж ±${S.anFlTol}` : ""}${S.anFin ? ", та же отделка" : ""}${S.anStage ? ", та же стадия" : ""}`;
+      hint.textContent = rows.length ? `Нажмите на лот, чтобы увидеть аналоги конкурентов (${cond}).` : "Наших лотов под выбранные фильтры нет.";
+      const withAn = rows.filter(x => x.delta != null);
+      if (withAn.length) {
+        const md = medianOf(withAn.map(x => x.delta));
+        const dear = withAn.filter(x => x.delta > PAR).length, cheap = withAn.filter(x => x.delta < -PAR).length;
+        ins.innerHTML = `Сопоставимое отклонение (медиана разниц по нашим лотам): ${pill(md)}. Дороже аналогов <b>${dear}</b> из ${withAn.length} лотов, в паритете <b>${withAn.length - dear - cheap}</b>, дешевле <b>${cheap}</b>${rows.length > withAn.length ? `; без аналогов ${rows.length - withAn.length}` : ""}.`;
+      } else ins.innerHTML = "";
+      let h = `<thead><tr>${thS("corp", "Корпус / лот", s, "l")}${thS("floor", "Этаж", s)}${thS("r", "Комн.", s)}${thS("area", "Площадь, м²", s)}${thS("fin", "Отделка", s, "l")}${thS("price", "Цена, млн ₽", s)}${thS("ppm", "Наша цена м²", s)}${thS("n", "Аналогов", s)}${thS("med", "Медиана аналогов, м²", s)}${thS("delta", "Разница", s)}</tr></thead><tbody>`;
+      rows.forEach(x => {
+        const id = lotId(x.l), open = S.openLot === id;
+        h += `<tr class="clk${open ? " open" : ""}" data-id="${esc(id)}" tabindex="0" aria-expanded="${open}"><td class="l"><span class="caret">${open ? "▾" : "▸"}</span>${esc(x.l.k)} · №${esc(x.l.lot)}</td><td>${x.l.floor ?? "—"}</td><td>${ROOM_LABEL[x.l.rooms] || esc(x.l.rooms)}</td><td>${nf1.format(x.l.area)}</td><td class="l">${esc(x.l.fl || "—")}</td><td>${nf1.format(budget(x.l) / 1e6)}</td><td class="ours-v">${nf0.format(ppmOf(x.l))}</td><td>${x.an.length}</td><td>${x.med ? nf0.format(x.med) : "—"}</td><td>${pill(x.delta)}</td></tr>`;
+        if (open) {
+          const an = x.an.slice().sort((a, b) => Math.abs(a.area - x.l.area) - Math.abs(b.area - x.l.area));
+          const byP = {}; an.forEach(a => (byP[a.p] = byP[a.p] || []).push(a));
+          const per = Object.entries(byP).map(([p, ls]) => ({ p, v: medianOf(ls.map(ppmOf)), n: ls.length })).sort((a, b) => b.v - a.v);
+          h += `<tr class="subrow"><td colspan="10"><div class="anbox">${an.length ? `
+            <div class="an-per">По проектам (медиана ₽/м² аналогов): ${per.map(q => `<span class="an-p">${esc(q.p)} <b>${nf0.format(q.v)}</b> <span class="muted">(${q.n})</span> ${pill(ppmOf(x.l) / q.v - 1, false)}</span>`).join("")}</div>
+            <div class="tbl-wrap"><table class="an-sub"><thead><tr><th class="l">Проект</th><th class="l">Корпус</th><th>Этаж</th><th>Площадь, м²</th><th class="l">Отделка</th><th class="l">Стадия</th><th>Ввод</th><th>Цена, млн ₽</th><th>₽/м²</th><th>Мы vs лот</th></tr></thead><tbody>
+            ${an.slice(0, 25).map(a => `<tr><td class="l">${esc(a.p)}</td><td class="l">${esc(a.k)}</td><td>${a.floor ?? "—"}</td><td>${nf1.format(a.area)}</td><td class="l">${esc(a.fl || "—")}</td><td class="l">${stageWord(a.st)}</td><td>${quarter(a.plan)}</td><td>${nf1.format(budget(a) / 1e6)}</td><td>${nf0.format(ppmOf(a))}</td><td>${pill(ppmOf(x.l) / ppmOf(a) - 1, false)}</td></tr>`).join("")}</tbody></table></div>
+            ${an.length > 25 ? `<div class="muted small">Показаны 25 ближайших по площади из ${an.length}.</div>` : ""}`
+            : `<div class="muted">Аналогов нет. Увеличьте допуск по площади или этажу либо снимите условия совпадения.</div>`}</div></td></tr>`;
+        }
+      });
+      tbl.innerHTML = h + "</tbody>";
+      tbl.onclick = e => {
+        const t = e.target.closest("th.sortable");
+        if (t) { const k = t.dataset.k; S.sortOurs = { k, asc: S.sortOurs.k === k ? !S.sortOurs.asc : false }; renderAnalogs(view()); return; }
+        const r = e.target.closest("tr.clk");
+        if (r) { S.openLot = S.openLot === r.dataset.id ? null : r.dataset.id; renderAnalogs(view()); }
+      };
+    } else {
+      ins.innerHTML = "";
+      const all = V.own.concat(comp);
+      const s = S.sortAll;
+      sortBy(all, s, (l, k) => ({ proj: l.p, corp: l.k, floor: l.floor, r: ROOMS.indexOf(l.rooms), area: l.area, fin: l.fl, st: l.st, dl: l.plan, price: budget(l), ppm: ppmOf(l) }[k]));
+      const lim = 400;
+      hint.textContent = `${nf0.format(all.length)} лот. в выборке${all.length > lim ? `, показаны первые ${lim} по текущей сортировке` : ""}. Наши лоты выделены.`;
+      tbl.innerHTML = `<thead><tr>${thS("proj", "Проект", s, "l")}${thS("corp", "Корпус", s, "l")}${thS("floor", "Этаж", s)}${thS("r", "Комн.", s)}${thS("area", "Площадь, м²", s)}${thS("fin", "Отделка", s, "l")}${thS("st", "Стадия", s, "l")}${thS("dl", "Ввод", s)}${thS("price", "Цена, млн ₽", s)}${thS("ppm", "₽/м²", s)}</tr></thead><tbody>`
+        + all.slice(0, lim).map(l => `<tr class="${l.p === V.G.own ? "own-row" : ""}"><td class="l">${esc(l.p)}</td><td class="l">${esc(l.k)}</td><td>${l.floor ?? "—"}</td><td>${ROOM_LABEL[l.rooms] || esc(l.rooms)}</td><td>${nf1.format(l.area)}</td><td class="l">${esc(l.fl || "—")}</td><td class="l">${stageWord(l.st)}</td><td>${quarter(l.plan)}</td><td>${nf1.format(budget(l) / 1e6)}</td><td>${nf0.format(ppmOf(l))}</td></tr>`).join("") + "</tbody>";
+      tbl.onclick = e => { const t = e.target.closest("th.sortable"); if (!t) return; const k = t.dataset.k; S.sortAll = { k, asc: S.sortAll.k === k ? !S.sortAll.asc : false }; renderAnalogs(view()); };
+    }
+    tbl.onkeydown = e => { if ((e.key === "Enter" || e.key === " ") && (e.target.matches("tr.clk") || e.target.matches("th.sortable"))) { e.preventDefault(); e.target.click(); } };
+  }
+  document.getElementById("an-fin").addEventListener("change", e => { S.anFin = e.target.checked; S.openLot = null; renderAnalogs(view()); });
+  document.getElementById("an-stage").addEventListener("change", e => { S.anStage = e.target.checked; S.openLot = null; renderAnalogs(view()); });
+  document.getElementById("tab-ours").addEventListener("click", () => { S.lotTab = "ours"; renderAnalogs(view()); });
+  document.getElementById("tab-all").addEventListener("click", () => { S.lotTab = "all"; renderAnalogs(view()); });
+
+  // ================= раздел «Сделки» =================
+  const DEALS = window.DEALS || [];
+  const DOBJ = {
+    best: { label: "Бестселлер", f: d => d.obj === "Бестселлер" },
+    alisa: { label: "Алиса", f: d => d.obj === "Алиса" },
+    dmd2: { label: "ДМД2", f: d => d.obj === "ДМД2" }
+  };
+  const DOBJ_NAMES = ["Бестселлер", "Алиса", "ДМД2"];
+  // месяцы выбранного ЖК (пересчитываются при смене вкладки)
+  let DMONTHS = [];
+  const MON = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+  const monthLabel = m => MON[+m.slice(5, 7) - 1] + " " + m.slice(2, 4);
+  const monthLong = m => ["январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"][+m.slice(5, 7) - 1] + " " + m.slice(0, 4);
+  const PAYS = ["Ипотека", "Рассрочка", "100% оплата"];
+  const DS = { obj: "best", from: "", to: "", rooms: null, pay: null, dtype: "all", fin: "all", sort: { k: "month", asc: false } };
+  const dSum = (L, f) => L.reduce((a, d) => a + (f(d) || 0), 0);
+  const objColor = o => cssv(o === "ДМД2" ? "--market" : "--own");
+  const roomKey = r => r === "студия" ? "студия" : r === "4" || r === "4+" ? "4+" : r;
+
+  function dealsReset() {
+    const own = DEALS.filter(DOBJ[DS.obj].f);
+    DMONTHS = uniq(own.map(d => d.month)).sort();
+    DS.from = DMONTHS[0] || ""; DS.to = DMONTHS[DMONTHS.length - 1] || "";
+    DS.rooms = new Set(ROOMS.filter(x => own.some(d => roomKey(d.rooms) === x)));
+    DS.pay = new Set(PAYS.filter(p => own.some(d => d.pay === p)));
+    DS.dtype = "all"; DS.fin = "all";
+  }
+  function dealsFiltered() {
+    const f = DOBJ[DS.obj].f;
+    return DEALS.filter(d => f(d) && d.month >= DS.from && d.month <= DS.to && DS.rooms.has(roomKey(d.rooms)) && DS.pay.has(d.pay)
+      && (DS.dtype === "all" || d.dealType === DS.dtype)
+      && (DS.fin === "all" || (DS.fin === "with" ? d.finish === "С отделкой" : d.finish !== "С отделкой")));
+  }
+  function dstats(L) {
+    if (!L.length) return null;
+    const rev = dSum(L, d => d.price), area = dSum(L, d => d.area), list = dSum(L, d => d.list), disc = dSum(L, d => d.disc), av = dSum(L, d => d.avRub);
+    const partner = L.filter(d => d.dealType === "Партнерская");
+    return { n: L.length, rev, area, ppm: area ? rev / area : null, list, disc, discPct: list ? disc / list : null, av, avShare: rev ? av / rev : null, budget: rev / L.length, partnerN: partner.length, partnerRev: dSum(partner, d => d.price) };
+  }
+  const discTxt = v => v == null ? "—" : (v > 0.00005 ? "+" : v < -0.00005 ? "−" : "") + nf1.format(Math.abs(v * 100)) + " %";
+  const discOnly = L => dSum(L, d => d.disc < 0 ? -d.disc : 0), markupOnly = L => dSum(L, d => d.disc > 0 ? d.disc : 0);
+
+  function renderDealsFilters() {
+    const opts = DMONTHS.map(m => `<option value="${m}">${monthLong(m)}</option>`).join("");
+    const fromEl = document.getElementById("d-from"), toEl = document.getElementById("d-to");
+    fromEl.innerHTML = opts; toEl.innerHTML = opts; fromEl.value = DS.from; toEl.value = DS.to;
+    const own = DEALS.filter(DOBJ[DS.obj].f);
+    chipGroup("d-rooms", ROOMS.filter(x => own.some(d => roomKey(d.rooms) === x)), DS.rooms, v => ROOM_LABEL[v]);
+    chipGroup("d-pay", PAYS.filter(p => own.some(d => d.pay === p)), DS.pay);
+    segGroup("d-dtype", [["all", "Все"], ["Прямая", "Прямые"], ["Партнерская", "Партнёрские"]], DS.dtype, v => { DS.dtype = v; });
+    segGroup("d-fin", [["all", "Все"], ["with", "С отделкой"], ["without", "Без отделки"]], DS.fin, v => { DS.fin = v; });
+  }
+  document.getElementById("d-from").addEventListener("change", e => { DS.from = e.target.value; if (DS.to < DS.from) DS.to = DS.from; renderAll(); });
+  document.getElementById("d-to").addEventListener("change", e => { DS.to = e.target.value; if (DS.from > DS.to) DS.from = DS.to; renderAll(); });
+  document.getElementById("d-reset").addEventListener("click", () => { dealsReset(); renderAll(); });
+
+  function renderDealsKpis(L) {
+    const s = dstats(L);
+    const per = DS.from === DS.to ? monthLong(DS.from) : `${monthLong(DS.from)} – ${monthLong(DS.to)}`;
+    const tiles = s ? [
+      { label: "Сделок", val: nf0.format(s.n), sub: per },
+      { label: "Выручка по договорам", val: s.rev >= 1e9 ? nf2.format(s.rev / 1e9) : mln(s.rev), unit: s.rev >= 1e9 ? "млрд ₽" : "млн ₽", sub: `средний бюджет ${mln(s.budget)} млн ₽` },
+      { label: "Продано площади", val: nf1.format(s.area), unit: "м²", sub: `<span class="k-accent">средняя площадь <b>${nf1.format(s.area / s.n)} м²</b></span>` },
+      { label: "Средняя цена м² договора", val: th(s.ppm), unit: "тыс. ₽", sub: `прайс ${th(s.list / s.area)} тыс. ₽/м²` },
+      { label: "Скидка / наценка к прайсу", val: discTxt(s.discPct), sub: `скидки ${mln(discOnly(L))} млн ₽${markupOnly(L) ? ` · наценки ${mln(markupOnly(L))} млн ₽` : ""}` },
+      { label: "Вознаграждение агентам", val: s.av ? mln(s.av) : "—", unit: "млн ₽", sub: s.av ? `${nf1.format(s.avShare * 100)} % выручки · партнёрских ${s.partnerN} из ${s.n}` : `в источнике не указано · партнёрских ${s.partnerN} из ${s.n}` }
+    ] : [{ label: "Сделок", val: "0", sub: "нет сделок при выбранных фильтрах" }];
+    document.getElementById("d-kpis").innerHTML = tiles.map((t, i) =>
+      `<div class="kpi${i < 2 ? " own" : ""}"><span class="k-label">${esc(t.label)}</span><span class="k-val">${t.val}${t.unit && t.val !== "—" ? `<small>${t.unit}</small>` : ""}</span><span class="k-sub">${t.sub || "&nbsp;"}</span></div>`).join("");
+  }
+
+  // подписи сумм над столбцами (в т. ч. над стопкой)
+  const topLabels = {
+    id: "topLabels",
+    afterDatasetsDraw(chart, args, opts) {
+      const { ctx } = chart; const n = chart.data.labels.length;
+      ctx.save(); ctx.font = `600 11px ${Chart.defaults.font.family}`; ctx.fillStyle = opts.color; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+      for (let i = 0; i < n; i++) {
+        let total = 0, top = Infinity, x = null;
+        chart.data.datasets.forEach((d, di) => { const meta = chart.getDatasetMeta(di); if (meta.hidden) return; const v = d.data[i]; if (!v) return; total += v; const el = meta.data[i]; top = Math.min(top, el.y); x = el.x; });
+        if (total && x != null) ctx.fillText(opts.fmt(total), x, top - 4);
+      }
+      ctx.restore();
+    }
+  };
+  function monthSeries(L, objs, f) { return objs.map(o => DMONTHS.filter(m => m >= DS.from && m <= DS.to).map(m => f(L.filter(d => d.obj === o && d.month === m)))); }
+  function dealObjs(L) { return DOBJ_NAMES.filter(o => L.some(d => d.obj === o)); }
+
+  function barByMonth(key, canvasId, L, valFn, fmt, yTick) {
+    kill(key);
+    const months = DMONTHS.filter(m => m >= DS.from && m <= DS.to), objs = dealObjs(L);
+    const B = baseOpts();
+    const ser = monthSeries(L, objs, valFn);
+    charts[key] = new Chart(document.getElementById(canvasId), {
+      type: "bar",
+      data: { labels: months.map(monthLabel), datasets: objs.map((o, i) => ({ label: o, data: ser[i], backgroundColor: objColor(o), borderColor: cssv("--surface"), borderWidth: { top: 2 }, borderSkipped: "bottom", borderRadius: 3, barPercentage: .75, categoryPercentage: .85, stack: "s" })) },
+      options: Object.assign({}, B, {
+        layout: { padding: { top: 18 } },
+        scales: { x: { stacked: true, grid: { display: false }, border: { color: B.grid } }, y: { stacked: true, beginAtZero: true, grid: { color: B.grid }, border: { display: false }, ticks: { callback: yTick } } },
+        plugins: { legend: Object.assign({}, B.plugins.legend, { display: objs.length > 1 }), topLabels: { color: B.ink2, fmt },
+          tooltip: Object.assign({}, B.plugins.tooltip, { callbacks: { label: c => `${c.dataset.label}: ${fmt(c.raw)}` } }) }
+      }),
+      plugins: [topLabels]
+    });
+  }
+  function lineByMonth(key, canvasId, L, valFn, fmt, yTick, extra) {
+    kill(key);
+    const months = DMONTHS.filter(m => m >= DS.from && m <= DS.to), objs = dealObjs(L);
+    const B = baseOpts(), surface = cssv("--surface");
+    const ser = monthSeries(L, objs, l => l.length ? valFn(l) : null);
+    const cnt = monthSeries(L, objs, l => l.length);
+    charts[key] = new Chart(document.getElementById(canvasId), {
+      type: "line",
+      data: { labels: months.map(monthLabel), datasets: objs.map((o, i) => ({ label: o, data: ser[i], borderColor: objColor(o), backgroundColor: objColor(o), borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6, pointBorderColor: surface, pointBorderWidth: 2, spanGaps: true, cubicInterpolationMode: "monotone" })) },
+      options: Object.assign({}, B, {
+        interaction: { mode: "index", intersect: false },
+        scales: { x: { grid: { display: false }, border: { color: B.grid } }, y: Object.assign({ grid: { color: B.grid }, border: { display: false }, ticks: { callback: yTick } }, extra || {}) },
+        plugins: { legend: B.plugins.legend, tooltip: Object.assign({}, B.plugins.tooltip, { filter: it => it.raw != null, callbacks: { label: c => `${c.dataset.label}: ${fmt(c.raw)} (${cnt[c.datasetIndex][c.dataIndex]} сд.)` } }) }
+      })
+    });
+  }
+
+  // оставляет n самых частых групп, остальные сводит в «Прочие»
+  function topGroups(by, n, otherLabel) {
+    const e = Object.entries(by).sort((a, b) => b[1].length - a[1].length);
+    if (e.length <= n + 1) return e;
+    const rest = e.slice(n).flatMap(x => x[1]);
+    return e.slice(0, n).concat([[`${otherLabel} (${e.length - n} вар.)`, rest]]);
+  }
+  function renderDiscKinds(L) {
+    kill("dkinds");
+    const box = document.getElementById("box-dkinds");
+    const by = {}; L.forEach(d => { const k = d.discFmt || (Math.abs(d.discPct || 0) < 0.0005 ? "Без скидки" : "Формат не указан"); (by[k] = by[k] || []).push(d); });
+    const items = topGroups(by, 12, "Прочие форматы").map(([label, l]) => ({ label, n: l.length, s: dstats(l) }));
+    box.style.height = Math.max(140, items.length * 32 + 40) + "px";
+    if (!items.length) { box.innerHTML = EMPTY; return; }
+    const B = baseOpts();
+    charts.dkinds = new Chart(canvasIn(box), {
+      type: "bar",
+      data: { labels: items.map(i => wrapLabel(i.label, 28)), datasets: [{ data: items.map(i => i.n), backgroundColor: items.map(i => i.s.discPct > 0.0005 ? cssv("--w3") : cssv("--range")), borderRadius: { topRight: 4, bottomRight: 4 }, borderSkipped: "start", barPercentage: .75 }] },
+      options: Object.assign({}, B, {
+        indexAxis: "y", layout: { padding: { right: 72 } },
+        scales: { x: { beginAtZero: true, grid: { color: B.grid }, border: { display: false }, ticks: { precision: 0 } }, y: { grid: { display: false }, border: { color: B.grid }, ticks: { color: B.ink2, autoSkip: false } } },
+        plugins: { legend: { display: false }, endLabels: { color: B.ink2, fmt: v => `${nf0.format(v)} · ${nf0.format(v / L.length * 100)} %` },
+          tooltip: Object.assign({}, B.plugins.tooltip, { displayColors: false, callbacks: { title: c => items[c[0].dataIndex].label, label: c => { const it = items[c.dataIndex]; return [`${it.n} сд. · к прайсу ${discTxt(it.s.discPct)}`, `Выручка ${mln(it.s.rev)} млн ₽`]; } } }) }
+      }),
+      plugins: [endLabels]
+    });
+  }
+
+  // круговые диаграммы: доли по количеству сделок
+  const pieLabels = {
+    id: "pieLabels",
+    afterDatasetsDraw(chart) {
+      const ds = chart.data.datasets[0], tot = ds.data.reduce((a, b) => a + b, 0), ctx = chart.ctx;
+      ctx.save(); ctx.font = `600 12px ${Chart.defaults.font.family}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      chart.getDatasetMeta(0).data.forEach((arc, i) => { const v = ds.data[i]; if (!v || v / tot < 0.05) return; const p = arc.tooltipPosition(); ctx.fillStyle = ds.textColors[i]; ctx.fillText(nf0.format(v / tot * 100) + " %", p.x, p.y); });
+      ctx.restore();
+    }
+  };
+  function renderPie(key, canvasId, L, groups) {
+    kill(key);
+    const items = groups.map(([label, f, color, light]) => { const l = L.filter(f); return { label, n: l.length, rev: dSum(l, d => d.price), color: cssv(color), text: light ? cssv("--ink") : "#FFFFFF" }; }).filter(x => x.n);
+    if (!items.length) return;
+    const B = baseOpts(), tot = items.reduce((a, x) => a + x.n, 0);
+    charts[key] = new Chart(document.getElementById(canvasId), {
+      type: "doughnut",
+      data: { labels: items.map(x => x.label), datasets: [{ data: items.map(x => x.n), backgroundColor: items.map(x => x.color), textColors: items.map(x => x.text), borderColor: cssv("--surface"), borderWidth: 2, hoverOffset: 6 }] },
+      options: Object.assign({}, B, {
+        cutout: "52%", layout: { padding: 6 },
+        plugins: {
+          legend: Object.assign({}, B.plugins.legend, { position: "bottom", labels: Object.assign({}, B.plugins.legend.labels, { generateLabels: ch => ch.data.labels.map((l, i) => ({ text: `${l} — ${items[i].n}`, fillStyle: items[i].color, strokeStyle: items[i].color, pointStyle: "circle", index: i })) }) }),
+          tooltip: Object.assign({}, B.plugins.tooltip, { callbacks: { label: c => { const it = items[c.dataIndex]; return [`${it.label}: ${it.n} сд. (${nf0.format(it.n / tot * 100)} %)`, `Выручка ${mln(it.rev)} млн ₽`]; } } })
+        }
+      }),
+      plugins: [pieLabels]
+    });
+  }
+  function renderPies(L) {
+    renderPie("pchan", "ch-pchan", L, [["Партнёрские", d => d.dealType === "Партнерская", "--r2"], ["Прямые", d => d.dealType === "Прямая", "--ink"]]);
+    renderPie("ppay", "ch-ppay", L, [["Ипотека", d => d.pay === "Ипотека", "--range"], ["Рассрочка", d => d.pay === "Рассрочка", "--r2"], ["100% оплата", d => d.pay === "100% оплата", "--r1", true]]);
+    renderPie("pfin", "ch-pfin", L, [["С отделкой", d => d.finish === "С отделкой", "--own"], ["Без отделки", d => d.finish !== "С отделкой", "--r1", true]]);
+  }
+  function renderPayHow(L) {
+    kill("dpay");
+    const box = document.getElementById("box-dpay");
+    const by = {}; L.forEach(d => { const k = d.payHow || d.pay; (by[k] = by[k] || { pay: d.pay, list: [] }).list.push(d); });
+    const byL = {}; Object.entries(by).forEach(([k, v]) => byL[k] = v.list);
+    const items = topGroups(byL, 14, "Прочие способы").map(([k, l]) => { const pays = uniq(l.map(d => d.pay)); return { k, pay: pays.length === 1 ? pays[0] : "Ипотека", n: l.length, s: dstats(l) }; });
+    box.style.height = Math.max(140, items.length * 30 + 60) + "px";
+    if (!items.length) { box.innerHTML = EMPTY; return; }
+    const B = baseOpts();
+    const pc = { "Ипотека": cssv("--range"), "Рассрочка": cssv("--r2"), "100% оплата": cssv("--r1") };
+    charts.dpay = new Chart(canvasIn(box), {
+      type: "bar",
+      data: { labels: items.map(i => wrapLabel(i.k, 30)), datasets: PAYS.map(p => ({ label: p, data: items.map(i => i.pay === p ? i.n : null), backgroundColor: pc[p], borderRadius: { topRight: 4, bottomRight: 4 }, borderSkipped: "start", barPercentage: .8, categoryPercentage: .9, stack: "p" })) },
+      options: Object.assign({}, B, {
+        indexAxis: "y", layout: { padding: { right: 30 } },
+        scales: { x: { stacked: true, beginAtZero: true, grid: { color: B.grid }, border: { display: false }, ticks: { precision: 0 } }, y: { stacked: true, grid: { display: false }, border: { color: B.grid }, ticks: { color: B.ink2, autoSkip: false } } },
+        plugins: { legend: Object.assign({}, B.plugins.legend, { labels: Object.assign({}, B.plugins.legend.labels, { usePointStyle: false, boxWidth: 12, boxHeight: 12 }) }),
+          tooltip: Object.assign({}, B.plugins.tooltip, { filter: it => it.raw != null, callbacks: { title: c => items[c[0].dataIndex].k, label: c => { const it = items[c.dataIndex]; return [`${it.n} сд. · ${nf0.format(it.n / L.length * 100)} % сделок`, `Выручка ${mln(it.s.rev)} млн ₽`, `Цена м² ${th(it.s.ppm)} тыс. ₽ · скидка ${discTxt(it.s.discPct)}`]; } } }) }
+      }),
+      plugins: [{ id: "payLabels", afterDatasetsDraw(chart) { const ctx = chart.ctx; ctx.save(); ctx.font = `500 12px ${Chart.defaults.font.family}`; ctx.fillStyle = B.ink2; ctx.textBaseline = "middle";
+        items.forEach((it, i) => { const di = PAYS.indexOf(it.pay); const el = chart.getDatasetMeta(di).data[i]; if (el) ctx.fillText(it.n, el.x + 6, el.y); }); ctx.restore(); } }]
+    });
+  }
+
+  function renderBanks(L) {
+    kill("dbank");
+    const box = document.getElementById("box-dbank");
+    const M = L.filter(d => d.pay === "Ипотека" && d.bank);
+    // латинские буквы-двойники (Cбер) приводим к кириллице, пробелы и точки убираем
+    const LAT = { c: "с", e: "е", o: "о", p: "р", a: "а", x: "х", k: "к", b: "в", m: "м", h: "н", t: "т", y: "у" };
+    const bankName = b => { const s = b.trim(), l = s.toLowerCase().replace(/[.\s]/g, "").replace(/[a-z]/g, ch => LAT[ch] || ch); return l.startsWith("сбер") ? "Сбер" : l === "домрф" ? "ДОМ.РФ" : l.startsWith("альфа") ? "Альфа" : l.startsWith("совком") ? "Совкомбанк" : s; };
+    const by = {}; M.forEach(d => { const k = bankName(d.bank); (by[k] = by[k] || []).push(d); });
+    const items = Object.entries(by).map(([b, l]) => ({ b, n: l.length, pv: l.filter(d => d.pv != null).reduce((a, d, _, arr) => a + d.pv / arr.length, 0), credit: dSum(l, d => d.credit) / l.length, s: dstats(l) })).sort((a, b) => b.n - a.n);
+    document.getElementById("sub-dbank").textContent = M.length ? `${M.length} ипотечных сделок. Наведите на строку, чтобы увидеть средний первоначальный взнос и сумму кредита` : "";
+    box.style.height = Math.max(140, items.length * 32 + 40) + "px";
+    if (!items.length) { box.innerHTML = `<div class="empty">Ипотечных сделок нет</div>`; return; }
+    const B = baseOpts();
+    charts.dbank = new Chart(canvasIn(box), {
+      type: "bar",
+      data: { labels: items.map(i => i.b), datasets: [{ data: items.map(i => i.n), backgroundColor: cssv("--range"), borderRadius: { topRight: 4, bottomRight: 4 }, borderSkipped: "start", barPercentage: .75 }] },
+      options: Object.assign({}, B, {
+        indexAxis: "y", layout: { padding: { right: 72 } },
+        scales: { x: { beginAtZero: true, grid: { color: B.grid }, border: { display: false }, ticks: { precision: 0 } }, y: { grid: { display: false }, border: { color: B.grid }, ticks: { color: B.ink2, autoSkip: false } } },
+        plugins: { legend: { display: false }, endLabels: { color: B.ink2, fmt: v => `${nf0.format(v)} · ${nf0.format(v / M.length * 100)} %` },
+          tooltip: Object.assign({}, B.plugins.tooltip, { displayColors: false, callbacks: { title: c => items[c[0].dataIndex].b, label: c => { const it = items[c.dataIndex]; return [`${it.n} сд.`, `Средний ПВ ${nf0.format(it.pv * 100)} %`].concat(it.credit ? [`Средний кредит ${mln(it.credit)} млн ₽`] : []); } } }) }
+      }),
+      plugins: [endLabels]
+    });
+  }
+
+  function renderRoomsTable(L) {
+    const s0 = dstats(L);
+    const rows = ROOMS.map(r => ({ r, l: L.filter(d => roomKey(d.rooms) === r) })).filter(x => x.l.length).map(x => ({ r: x.r, s: dstats(x.l) }));
+    const tr = (label, s, cls) => `<tr class="${cls || ""}"><td class="l">${label}</td><td>${s.n}</td><td>${nf0.format(s.n / s0.n * 100)} %</td><td>${nf1.format(s.area / s.n)}</td><td>${mln(s.budget)}</td><td>${nf0.format(s.ppm)}</td><td>${discTxt(s.discPct)}</td><td>${mln(s.rev)}</td></tr>`;
+    document.getElementById("tbl-drooms").innerHTML = !s0 ? `<tbody><tr><td class="l">Нет сделок</td></tr></tbody>` :
+      `<thead><tr><th class="l">Комнатность</th><th>Сделок</th><th>Доля</th><th>Ср. S, м²</th><th>Ср. бюджет, млн ₽</th><th>₽/м²</th><th>Скидка</th><th>Выручка, млн ₽</th></tr></thead><tbody>` +
+      rows.map(x => tr(ROOM_LABEL[x.r] || x.r, x.s)).join("") + tr("Итого", s0, "mkt-row") + "</tbody>";
+  }
+  function renderAgentsTable(L) {
+    const agentName = a => a.replace(/\s*\d{9,12}\s*$/, "").replace(/\s*\(ИП [^)]*\)/, "").trim();
+    const rows = Object.entries(by).map(([k, l]) => ({ k, s: dstats(l), avPct: l.filter(d => d.avPct).reduce((a, d, _, arr) => a + d.avPct / arr.length, 0), direct: k.startsWith("Прямые") })).sort((a, b) => b.s.n - a.s.n);
+    document.getElementById("tbl-dagents").innerHTML = !rows.length ? `<tbody><tr><td class="l">Нет сделок</td></tr></tbody>` :
+      `<thead><tr><th class="l">Агентство</th><th>Сделок</th><th>Выручка, млн ₽</th><th>Ср. АВ</th><th>АВ, млн ₽</th></tr></thead><tbody>` +
+      rows.map(x => `<tr class="${x.direct ? "mkt-row" : ""}"><td class="l wrap">${esc(x.k)}</td><td>${x.s.n}</td><td>${mln(x.s.rev)}</td><td>${x.direct ? "—" : nf1.format(x.avPct * 100) + " %"}</td><td>${x.direct ? "—" : mln(x.s.av)}</td></tr>`).join("") + "</tbody>";
+  }
+  const DCOLS = [
+    { k: "month", label: "Дата", l: true, get: d => d.date || d.month, fmt: d => d.date ? ru(d.date) : monthLabel(d.month) },
+    { k: "obj", label: "Объект", l: true, get: d => d.obj, fmt: d => esc(d.obj) },
+    { k: "sec", label: "Секция", get: d => +d.sec || 0, fmt: d => esc(d.sec) },
+    { k: "floor", label: "Этаж", get: d => d.floor, fmt: d => d.floor ?? "—" },
+    { k: "apt", label: "№ кв.", get: d => +d.apt || 0, fmt: d => esc(d.apt) },
+    { k: "rooms", label: "Комн.", get: d => ROOMS.indexOf(roomKey(d.rooms)), fmt: d => ROOM_LABEL[roomKey(d.rooms)] || esc(d.rooms) },
+    { k: "area", label: "S, м²", get: d => d.area, fmt: d => nf2.format(d.area) },
+    { k: "list", label: "Прайс, ₽", get: d => d.list, fmt: d => nf0.format(d.list) },
+    { k: "price", label: "Договор, ₽", get: d => d.price, fmt: d => `<b>${nf0.format(d.price)}</b>` },
+    { k: "ppm", label: "₽/м²", get: d => d.ppm, fmt: d => nf0.format(d.ppm) },
+    { k: "discPct", label: "Скидка", get: d => d.discPct, fmt: d => discTxt(d.discPct) },
+    { k: "pay", label: "Оплата", l: true, get: d => d.pay, fmt: d => payPill(d.pay) },
+    { k: "mgr", label: "Менеджер", l: true, get: d => d.mgr, fmt: d => esc(d.mgr || "—") },
+    { k: "discFmt", label: "Формат скидки", l: true, w: true, get: d => d.discFmt, fmt: d => esc(d.discFmt || "—") },
+    { k: "payHow", label: "Способ покупки", l: true, get: d => d.payHow, fmt: d => esc(d.payHow || d.pay) },
+    { k: "bank", label: "Банк", l: true, get: d => d.bank, fmt: d => esc(d.bank || "—") },
+    { k: "pv", label: "ПВ", get: d => d.pv, fmt: d => d.pv == null ? "—" : nf0.format(d.pv * 100) + " %" },
+    { k: "finish", label: "Отделка", l: true, get: d => d.finish, fmt: d => esc(d.finish === "С отделкой" ? "с отделкой · " + (d.finishDesc || "") : "без отделки") },
+    { k: "dealType", label: "Тип сделки", l: true, get: d => d.dealType, fmt: d => esc(d.dealType) },
+    { k: "agent", label: "Агент", l: true, get: d => d.agent, fmt: d => esc(d.agent ? d.agent.replace(/\s*\d{9,12}\s*$/, "") : "—") },
+    { k: "avPct", label: "АВ", get: d => d.avPct, fmt: d => d.avPct == null ? "—" : nf1.format(d.avPct * 100) + " %" },
+    { k: "avRub", label: "АВ, ₽", get: d => d.avRub, fmt: d => d.avRub ? nf0.format(d.avRub) : "—" }
+  ];
+  function renderDealsTable(L) {
+    const s = DS.sort, col = DCOLS.find(c => c.k === s.k) || DCOLS[0];
+    const rows = L.slice();
+    sortBy(rows, s, (d, k) => col.get(d));
+    document.getElementById("sub-dtable").textContent = `${rows.length} сделок по выбранным фильтрам. Сортировка по клику на заголовок`;
+    const t = document.getElementById("tbl-deals");
+    t.innerHTML = `<thead><tr>${DCOLS.map(c => thS(c.k, c.label, s, c.l ? "l" : "")).join("")}</tr></thead><tbody>` +
+      rows.map(d => `<tr>${DCOLS.map(c => `<td class="${c.l ? "l" : ""}${c.w ? " fmt-wrap" : ""}">${c.fmt(d)}</td>`).join("")}</tr>`).join("") + "</tbody>";
+    t.onclick = e => { const h = e.target.closest("th.sortable"); if (!h) return; const k = h.dataset.k; DS.sort = { k, asc: DS.sort.k === k ? !DS.sort.asc : (DCOLS.find(c => c.k === k).l ? true : false) }; renderDealsTable(dealsFiltered()); };
+  }
+
+  // рейтинг: строка с номером, названием, суммой, полосой и подписями снизу
+  function rankHtml(items, max) {
+    return items.map((x, i) => `<div class="rank-item"><div class="rank-top"><span class="rank-n">${i + 1}</span><span class="rank-name" title="${esc(x.name)}">${esc(x.name)}</span><span class="rank-val">${mln(x.rev)} млн ₽<small>(${x.n} сд.)</small></span></div>` +
+      `<div class="rank-bar"><span style="width:${max ? Math.max(2, x.rev / max * 100) : 0}%"></span></div>` +
+      `<div class="rank-foot"><span>${x.left}</span><span>${x.right}</span></div></div>`).join("");
+  }
+  function renderManagers(L) {
+    const by = {}; L.forEach(d => { const k = d.mgr || "Не указан"; (by[k] = by[k] || []).push(d); });
+    const items = Object.entries(by).map(([name, l]) => { const s = dstats(l); return { name, rev: s.rev, n: s.n, left: `Ср. чек: ${mln(s.budget)} млн ₽ · ${th(s.ppm)} тыс. ₽/м²`, right: `Скидки: ${mln(discOnly(l))} млн ₽ (${discTxt(s.discPct)})` }; }).sort((a, b) => b.rev - a.rev);
+    document.getElementById("rank-mgr").innerHTML = !items.length ? `<div class="empty">Нет сделок</div>` : (items.length === 1 && items[0].name === "Не указан") ? `<div class="empty">В источнике по ЖК «${esc(DOBJ[DS.obj].label)}» менеджеры не указаны</div>` : rankHtml(items, items[0].rev);
+  }
+  function renderAgencies(L) {
+    const agentName = a => a.replace(/\s*\d{9,12}\s*$/, "").replace(/\s*\(ИП [^)]*\)/, "").trim();
+    const P = L.filter(d => d.dealType === "Партнерская" && d.agent);
+    const by = {}; P.forEach(d => { const k = agentName(d.agent); (by[k] = by[k] || []).push(d); });
+    const items = Object.entries(by).map(([name, l]) => {
+      const s = dstats(l); const pcts = l.filter(d => d.avPct).map(d => d.avPct);
+      return { name, rev: s.rev, n: s.n, left: `АВ: ${mln(s.av)} млн ₽${pcts.length ? ` · ср. ${nf1.format(pcts.reduce((a, b) => a + b, 0) / pcts.length * 100)} %` : ""}`, right: `Ср. чек: ${mln(s.budget)} млн ₽` };
+    }).sort((a, b) => b.rev - a.rev);
+    const partnerAll = L.filter(d => d.dealType === "Партнерская");
+    document.getElementById("rank-agent").innerHTML = items.length ? rankHtml(items, items[0].rev) : `<div class="empty">${partnerAll.length ? `В источнике по ЖК «${esc(DOBJ[DS.obj].label)}» агентства и вознаграждение не указаны` : "Партнёрских сделок нет"}</div>`;
+    const D = dstats(L.filter(d => d.dealType !== "Партнерская")), sP = dstats(partnerAll);
+    document.getElementById("rank-agent-note").textContent = [sP ? `Партнёрских ${sP.n} из ${L.length} сделок, ${nf0.format(sP.rev / dSum(L, d => d.price) * 100)} % выручки` : "", D ? `прямые продажи: ${D.n} сд., ${mln(D.rev)} млн ₽` : ""].filter(Boolean).join("; ") + ".";
+  }
+  const payPill = p => `<span class="pay-pill ${p === "Ипотека" ? "mort" : p === "Рассрочка" ? "inst" : "cash"}">${esc(p || "—")}</span>`;
+  function renderDeals() {
+    renderDealsFilters();
+    const L = dealsFiltered();
+    renderDealsKpis(L);
+    barByMonth("dcount", "ch-dcount", L, l => l.length, v => nf0.format(v), v => nf0.format(v));
+    barByMonth("drev", "ch-drev", L, l => dSum(l, d => d.price) / 1e6, v => nf0.format(v), v => nf0.format(v));
+    lineByMonth("dppm", "ch-dppm", L, l => dSum(l, d => d.price) / dSum(l, d => d.area), v => th(v) + " тыс. ₽/м²", v => nf0.format(v / 1000));
+    lineByMonth("ddisc", "ch-ddisc", L, l => dSum(l, d => d.disc) / dSum(l, d => d.list), v => discTxt(v), v => discTxt(v), { grid: { color: ctx => ctx.tick && ctx.tick.value === 0 ? cssv("--line-strong") : cssv("--line") } });
+    renderPies(L); renderDiscKinds(L); renderPayHow(L); renderBanks(L); renderManagers(L); renderAgencies(L); renderRoomsTable(L); renderDealsTable(L);
+  }
+
+  function goSection(mode) {
+    if (S.mode === mode) return;
+    S.mode = mode;
+    try { history.replaceState(null, "", "#" + (mode === "deals" ? "deals" + (DS.obj === "best" ? "" : "-" + DS.obj) : S.g)); } catch (e) {}
+    window.scrollTo(0, 0); renderAll();
+  }
+  document.getElementById("nav-offer").addEventListener("click", () => goSection("comp"));
+  document.getElementById("nav-deals").addEventListener("click", () => goSection("deals"));
+
+  // ---------- автообновление из Google-таблицы ----------
+  // Страница при открытии читает опубликованные листы «Конкуренты рабочая» и «справочник индексов».
+  // Если таблица не опубликована или недоступна, остаётся встроенный снимок данных.
+  const SRC_ID = "17d36Bj_2z4kF29fAn427L8t-cqQE1vUCCoY2dn9fU6Q";
+  const GID_LOTS = 776320276, GID_REF = 1444846877;
+  const OWN_KEYS = { "Алиса": "alisa", "ДНК: Дом на Куйбышева": "dnk", "Милый дом (BAZA)": "md", "РЖД": "rzd" };
+  const EXCLUDE = { alisa: ["Б-26", "Дом на Библиотечной", "Отдельный, 5"] };
+  let LIVE = { ok: false, at: null };
+
+  function parseCsv(s) {
+    const out = []; let row = [], f = "", q = false;
+    for (let i = 0; i < s.length; i++) {
+      const c = s[i];
+      if (q) { if (c === '"') { if (s[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; continue; }
+      if (c === '"') q = true;
+      else if (c === ",") { row.push(f); f = ""; }
+      else if (c === "\n") { row.push(f); out.push(row); row = []; f = ""; }
+      else if (c !== "\r") f += c;
+    }
+    if (f !== "" || row.length) { row.push(f); out.push(row); }
+    return out;
+  }
+  async function fetchSheet(gid) {
+    const url = `https://docs.google.com/spreadsheets/d/${SRC_ID}/pub?gid=${gid}&single=true&output=csv&t=${Date.now()}`;
+    try {
+      const r = await fetch(url, { cache: "no-store" });
+      if (!r.ok) return null;
+      const txt = await r.text();
+      if (/^\s*</.test(txt)) return null; // страница входа вместо CSV
+      return parseCsv(txt);
+    } catch (e) { return null; }
+  }
+  const numOf = s => { if (s == null) return null; const t = String(s).replace(/[\s  %]/g, "").replace(",", "."); if (t === "") return null; const n = Number(t); return isFinite(n) ? n : null; };
+  const isoOf = s => {
+    s = String(s || "").trim();
+    let m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/);
+    if (m) { let y = +m[3]; if (y < 100) y += 2000; return `${y}-${String(m[2]).padStart(2, "0")}-${String(m[1]).padStart(2, "0")}`; }
+    m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[0] : "";
+  };
+  function lotsFromGrid(g) {
+    const H = {}; (g[0] || []).forEach((h, i) => H[h.trim()] = i);
+    const need = ["Проект", "Площадь, м² (Сводная)", "Цена предложения, ₽", "Цена со скидкой", "Количество комнат (Данные Объектива)"];
+    if (need.some(n => H[n] == null)) return null;
+    const get = (r, n) => H[n] == null ? "" : String(r[H[n]] ?? "").trim();
+    const rows = [];
+    for (let i = 1; i < g.length; i++) {
+      const r = g[i]; const p = get(r, "Проект"); if (!p) continue;
+      const vid = get(r, "Вид помещения"); if (vid && vid !== "квартира") continue;
+      const o = { p, dev: get(r, "Девелопер"), dis: get(r, "Район"), k: get(r, "Корпус"), cls: get(r, "Класс"), st: get(r, "Стадия строительства"),
+        fc: get(r, "Отделка по корпусу (ЕИСЖС)"), fl: get(r, "Отделка лота (Сайт девелопера)"), at: get(r, "Тип площади"), plan: isoOf(get(r, "Планируемая дата ввода")),
+        rooms: get(r, "Количество комнат (Данные Объектива)"), area: numOf(get(r, "Площадь, м² (Сводная)")), price: numOf(get(r, "Цена предложения, ₽")),
+        disc: numOf(get(r, "Цена со скидкой")), floor: numOf(get(r, "Этаж")), ready: numOf(get(r, "Готовность")), lot: get(r, "Номер лота"),
+        appear: isoOf(get(r, "Дата появления в продаже")), priceSet: isoOf(get(r, "Дата установки цены")), actual: isoOf(get(r, "Дата актуальности цены")) };
+      if (!o.area || !o.price) continue;
+      if (o.disc == null) o.disc = o.price;
+      o.expo = (o.appear && o.actual) ? Math.round((Date.parse(o.actual) - Date.parse(o.appear)) / DAY) : null;
+      rows.push(o);
+    }
+    return rows.length > 100 ? rows : null;
+  }
+  function applyRef(g) {
+    const disc = {}, groups = {};
+    for (let r = 0; r < g.length; r++) for (let c = 0; c < g[r].length; c++) {
+      const v = String(g[r][c] || "").trim();
+      if (v === "Проект" && String(g[r][c + 1] || "").trim() === "Скидка") {
+        for (let rr = r + 1; rr < g.length && String(g[rr][c] || "").trim(); rr++) disc[g[rr][c].trim()] = numOf(g[rr][c + 1]);
+      }
+      const m = v.match(/^Конкуренты_(.+)$/);
+      if (m) { const list = []; for (let rr = r + 1; rr < g.length && String(g[rr][c] || "").trim(); rr++) list.push(g[rr][c].trim()); groups[m[1].trim()] = list; }
+    }
+    // названия из справочника сопоставляем с выгрузкой без учёта регистра («Городские Легенды» = «Городские легенды»)
+    const byLower = {}; Object.keys(byProject).forEach(p => byLower[p.toLowerCase()] = p);
+    const norm = p => byLower[p.toLowerCase()] || p;
+    let extra = 0;
+    Object.entries(groups).forEach(([own, list]) => {
+      if (!list.length) return;
+      const key = OWN_KEYS[own] || ("loc" + (++extra));
+      const comps = list.map(norm).filter(p => !(EXCLUDE[key] || []).includes(p));
+      if (GROUPS[key]) GROUPS[key].comps = comps;
+      else GROUPS[key] = { label: own.replace(/\s*\(BAZA\)\s*/, "").trim(), own: norm(own), comps };
+    });
+    Object.entries(disc).forEach(([p, v]) => { if (v != null) DISCOUNT[norm(p)] = v; });
+  }
+  async function loadLive() {
+    const [lots, ref] = await Promise.all([fetchSheet(GID_LOTS), fetchSheet(GID_REF)]);
+    const rows = lots && lotsFromGrid(lots);
+    if (!rows) return;
+    setRows(rows);
+    if (ref) applyRef(ref);
+    if (!GROUPS[S.g]) S.g = "alisa";
+    LIVE = { ok: true, at: new Date() };
+    resetFilters(); renderMethod(); renderAll();
+  }
+
+  // ---------- render ----------
+  function renderAll(keepDropdown) {
+    const deals = S.mode === "deals";
+    document.getElementById("view-comp").hidden = deals;
+    document.getElementById("view-deals").hidden = !deals;
+    document.getElementById("nav-offer").setAttribute("aria-pressed", !deals);
+    document.getElementById("nav-deals").setAttribute("aria-pressed", deals);
+    document.getElementById("page-title").textContent = deals ? "Сделки" : "Конкурентный срез";
+    document.getElementById("asof").textContent = deals ? (DMONTHS.length ? `${DOBJ[DS.obj].label} · договоры ${monthLong(DMONTHS[0])} – ${monthLong(DMONTHS[DMONTHS.length - 1])}` : "Сделки") : `Екатеринбург · цены на ${ru(latest)}`;
+    if (deals) { renderTabs(); renderDeals(); return; }
+    const dd = document.getElementById("f-comps"); const wasOpen = dd.open;
+    renderTabs(); renderFilters();
+    if (keepDropdown) dd.open = wasOpen;
+    const V = view();
+    renderNote(V); renderKpis(V); renderBar(V); renderRange(V); renderFloor(V); renderMix(V); renderLine(V); renderScatter(V); renderMatrix(V); renderAnalogs(V);
+  }
+  // состав конкурентов и скидки из справочника, встроенного при ежедневной сборке
+  if (window.REF) applyRef(window.REF);
+  if (window.BUILT_AT) document.getElementById("deals-built").textContent = `Обновляется автоматически каждый день, последнее изменение ${window.BUILT_AT}.`;
+  resetFilters(); dealsReset();
+  if (dealsHash) { const o = initialG.slice(6); if (DOBJ[o]) DS.obj = o; }
+  dealsReset();
+  if (typeof Chart === "undefined") {
+    document.querySelectorAll(".chart-box").forEach(b => b.innerHTML = `<div class="empty">Не удалось загрузить библиотеку графиков. Проверьте доступ к cdnjs.cloudflare.com</div>`);
+    window.Chart = function () { return { destroy() {} }; }; window.Chart.defaults = { font: {} };
+  }
+  renderMethod();
+  renderAll();
+  loadLive();
+
+  const rerender = () => renderAll();
+  try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", rerender); } catch (e) {}
+  new MutationObserver(rerender).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(rerender);
+})();
+</script>
