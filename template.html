@@ -370,7 +370,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     </article>
     <article class="card third">
       <h2>Цена м² по месяцам</h2>
-      <p class="sub">Средняя цена м² договора, тыс. ₽ (сумма договоров к сумме площадей)</p>
+      <p class="sub">Средняя цена м² договора, тыс. ₽ (сумма договоров к сумме площадей с коэф. 0,3/0,5)</p>
       <div class="chart-box" style="height:300px"><canvas id="ch-dppm"></canvas></div>
     </article>
 
@@ -424,7 +424,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
 
     <article class="card full">
       <h2>Комнатность</h2>
-      <p class="sub">Сделки, средняя площадь, бюджет, цена м² и скидка по типу квартиры</p>
+      <p class="sub">Сделки, средняя площадь (с коэф. 0,3/0,5), бюджет, цена м² и скидка по типу квартиры</p>
       <div class="tbl-wrap"><table id="tbl-drooms"></table></div>
     </article>
 
@@ -1405,8 +1405,8 @@ footer.method b { color: var(--ink); font-weight: 600; }
     const tiles = s ? [
       { label: "Сделок", val: nf0.format(s.n), sub: per },
       { label: "Выручка по договорам", val: s.rev >= 1e9 ? nf2.format(s.rev / 1e9) : mln(s.rev), unit: s.rev >= 1e9 ? "млрд ₽" : "млн ₽", sub: `средний бюджет ${mln(s.budget)} млн ₽` },
-      { label: "Продано площади", val: nf1.format(s.area), unit: "м²", sub: `<span class="k-accent">средняя площадь <b>${nf1.format(s.area / s.n)} м²</b></span>` },
-      { label: "Средняя цена м² договора", val: th(s.ppm), unit: "тыс. ₽", sub: `прайс ${th(s.list / s.area)} тыс. ₽/м²` },
+      { label: "Продано площади, с коэф. 0,3/0,5", val: nf1.format(s.area), unit: "м²", sub: `<span class="k-accent">средняя площадь <b>${nf1.format(s.area / s.n)} м²</b></span>` },
+      { label: "Средняя цена м² договора", val: th(s.ppm), unit: "тыс. ₽", sub: `прайс ${th(s.list / s.area)} тыс. ₽/м² · площадь с коэф. 0,3/0,5` },
       { label: "Скидка / наценка к прайсу", val: discTxt(s.discPct), sub: `скидки ${mln(discOnly(L))} млн ₽${markupOnly(L) ? ` · наценки ${mln(markupOnly(L))} млн ₽` : ""}` },
       { label: "Вознаграждение агентам", val: s.av ? mln(s.av) : "—", unit: "млн ₽", sub: s.av ? `${nf1.format(s.avShare * 100)} % выручки · партнёрских ${s.partnerN} из ${s.n}` : `в источнике не указано · партнёрских ${s.partnerN} из ${s.n}` }
     ] : [{ label: "Сделок", val: "0", sub: "нет сделок при выбранных фильтрах" }];
@@ -1581,7 +1581,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     const rows = ROOMS.map(r => ({ r, l: L.filter(d => roomKey(d.rooms) === r) })).filter(x => x.l.length).map(x => ({ r: x.r, s: dstats(x.l) }));
     const tr = (label, s, cls) => `<tr class="${cls || ""}"><td class="l">${label}</td><td>${s.n}</td><td>${nf0.format(s.n / s0.n * 100)} %</td><td>${nf1.format(s.area / s.n)}</td><td>${mln(s.budget)}</td><td>${nf0.format(s.ppm)}</td><td>${discTxt(s.discPct)}</td><td>${mln(s.rev)}</td></tr>`;
     document.getElementById("tbl-drooms").innerHTML = !s0 ? `<tbody><tr><td class="l">Нет сделок</td></tr></tbody>` :
-      `<thead><tr><th class="l">Комнатность</th><th>Сделок</th><th>Доля</th><th>Ср. S, м²</th><th>Ср. бюджет, млн ₽</th><th>₽/м²</th><th>Скидка</th><th>Выручка, млн ₽</th></tr></thead><tbody>` +
+      `<thead><tr><th class="l">Комнатность</th><th>Сделок</th><th>Доля</th><th>Ср. S, м² (коэф. 0,3/0,5)</th><th>Ср. бюджет, млн ₽</th><th>₽/м²</th><th>Скидка</th><th>Выручка, млн ₽</th></tr></thead><tbody>` +
       rows.map(x => tr(ROOM_LABEL[x.r] || x.r, x.s)).join("") + tr("Итого", s0, "mkt-row") + "</tbody>";
   }
   function renderAgentsTable(L) {
@@ -1598,7 +1598,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     { k: "floor", label: "Этаж", get: d => d.floor, fmt: d => d.floor ?? "—" },
     { k: "apt", label: "№ кв.", get: d => +d.apt || 0, fmt: d => esc(d.apt) },
     { k: "rooms", label: "Комн.", get: d => ROOMS.indexOf(roomKey(d.rooms)), fmt: d => ROOM_LABEL[roomKey(d.rooms)] || esc(d.rooms) },
-    { k: "area", label: "S, м²", get: d => d.area, fmt: d => nf2.format(d.area) },
+    { k: "area", label: "S, м² (коэф. 0,3/0,5)", get: d => d.area, fmt: d => nf2.format(d.area) },
     { k: "list", label: "Прайс, ₽", get: d => d.list, fmt: d => nf0.format(d.list) },
     { k: "price", label: "Договор, ₽", get: d => d.price, fmt: d => `<b>${nf0.format(d.price)}</b>` },
     { k: "ppm", label: "₽/м²", get: d => d.ppm, fmt: d => nf0.format(d.ppm) },
