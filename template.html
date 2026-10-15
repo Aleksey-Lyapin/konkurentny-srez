@@ -539,7 +539,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
   </section>
 
   <footer class="method">
-    <div><b>Источники.</b> Сделки конкурентов — лист «Сделки» книги «Копия Алиса: план, дцо, прайс»: дата договора (столбец AI), комнатность по данным Объектива (U), площадь сводная (X), расчётный бюджет лота (Y), ипотека по типу обременения (AO). Наши сделки — таблица «Сделки — сводная (Бестселлер, Алиса, ДМД2)», лист «Все сделки». Состав конкурентов — справочник: для Алисы её список, для ДМД2 список «Милого дома».</div>
+    <div><b>Источники.</b> Сделки конкурентов — лист «Сделки» книги «Копия Алиса: план, дцо, прайс»: дата договора (столбец AI), комнатность по данным Объектива (U), площадь сводная (X), расчётный бюджет лота (Y), ипотека по типу обременения (AO). Наши сделки — таблица «Сделки — сводная (Бестселлер, Алиса, ДМД2)», лист «Все сделки», площадь с коэффициентом 1 (столбец K). Состав конкурентов — справочник: для Алисы её список, для ДМД2 список «Милого дома».</div>
     <div><b>Расчёты.</b> Цена м² — сумма договоров к сумме площадей. Доля рынка — наши сделки к сумме наших и конкурентских за тот же период. Темп — сделки, делённые на число месяцев периода. По умолчанию выбран период, за который есть данные и по нашим сделкам, и по конкурентам. Сделки конкурентов попадают в выгрузку после регистрации договора, поэтому последний месяц может быть неполным.</div>
   </footer>
 </main>
@@ -1671,7 +1671,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     dmd2: { label: "ДМД2", obj: "ДМД2", grp: "md" }
   };
   const CS = { loc: "alisa", from: "", to: "", rooms: null, comps: null, ct: null, mort: "all", sort: { k: "n", asc: false } };
-  const cOwnRows = loc => DEALS.filter(d => d.obj === CLOC[loc].obj).map(d => ({ p: CLOC[loc].label, own: true, date: d.date, month: d.month, rooms: roomKey(d.rooms), area: d.area, budget: d.price, mort: d.pay === "Ипотека" ? 1 : 0, ct: "", sl: "" }));
+  const cOwnRows = loc => DEALS.filter(d => d.obj === CLOC[loc].obj).map(d => ({ p: CLOC[loc].label, own: true, date: d.date, month: d.month, rooms: roomKey(d.rooms), area: d.area1 || d.area, budget: d.price, mort: d.pay === "Ипотека" ? 1 : 0, ct: "", sl: "" })); // площадь с коэф. 1 (столбец K)
   const cCompNames = loc => { const g = GROUPS[CLOC[loc].grp]; const have = new Set(CROWS.map(r => r.p)); return g ? g.comps.filter(p => have.has(p)) : []; };
   const cCompNamesAll = loc => { const g = GROUPS[CLOC[loc].grp]; return g ? g.comps : []; };
   const CTYPES = () => uniq(CROWS.map(r => r.ct)).sort((a, b) => (a === "ДДУ" ? -1 : b === "ДДУ" ? 1 : a.localeCompare(b, "ru")));
