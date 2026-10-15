@@ -19,6 +19,33 @@ LOTS_ID = "17d36Bj_2z4kF29fAn427L8t-cqQE1vUCCoY2dn9fU6Q"   # «Копия Али
 DEALS_ID = "1Woub02QxU2KpezI08kPrjXwPUJcp3tJAZ5SXqmArhJ0"  # «Сделки — сводная (Бестселлер, Алиса, ДМД2)»
 API = "https://sheets.googleapis.com/v4/spreadsheets/"
 ROOT = Path(__file__).resolve().parent
+CDEALS_GID = 775184539                                       # лист сделок конкурентов в книге LOTS_ID
+
+
+def col_letter(i):
+    s = ""
+    i += 1
+    while i:
+        i, r = divmod(i - 1, 26)
+        s = chr(65 + r) + s
+    return s
+
+
+def profile_cdeals(title, rows):
+    """Обезличенная сводка листа сделок конкурентов для журнала сборки: заголовки, объёмы, варианты значений."""
+    from collections import Counter
+    head = rows[0] if rows else []
+    print(f"Сделки конкурентов: лист «{title}», строк {len(rows) - 1}")
+    print("Заголовки: " + " | ".join(f"{col_letter(i)}={h}" for i, h in enumerate(head)))
+    cell = lambda r, i: r[i].strip() if i < len(r) and isinstance(r[i], str) else ""
+    body = rows[1:]
+    print("Проекты (A): " + "; ".join(f"{k}={v}" for k, v in Counter(cell(r, 0) for r in body).most_common(60)))
+    for idx in (20, 40):  # U — комнатность, AO — ипотека
+        print(f"{col_letter(idx)} варианты: " + "; ".join(f"{k or '(пусто)'}={v}" for k, v in Counter(cell(r, idx) for r in body).most_common(15)))
+    dates = sorted({cell(r, 34) for r in body if cell(r, 34)})
+    print(f"AI даты: {len(dates)} разных, примеры {dates[:3]} … {dates[-3:]}")
+    sample = next((r for r in body if cell(r, 23) and cell(r, 24)), [])
+    print(f"Формат X/Y: {cell(sample, 23)!r} / {cell(sample, 24)!r}")
 
 
 def set_output(name, value):
@@ -67,6 +94,19 @@ def main():
 
     raw = ROOT / "raw"
     raw.mkdir(exist_ok=True)
+
+    # сделки конкурентов (лист с gid CDEALS_GID в той же книге); если листа нет, страница работает без них
+    try:
+        props = get(API + LOTS_ID, fields="sheets.properties.sheetId,sheets.properties.title")
+        title = next((p["properties"]["title"] for p in props.get("sheets", []) if p["properties"]["sheetId"] == CDEALS_GID), None)
+        if not title:
+            raise RuntimeError(f"лист с gid {CDEALS_GID} не найден")
+        cd = values(LOTS_ID, f"'{title}'!A1:BZ")
+        cv = cd.get("values", [])
+        (raw / "cdeals.json").write_text(json.dumps(cd, ensure_ascii=False), encoding="utf-8")
+        profile_cdeals(title, cv)
+    except Exception as e:  # noqa: BLE001
+        print(f"::warning::Сделки конкурентов не загружены: {e}")
     (raw / "lots.json").write_text(json.dumps(lots, ensure_ascii=False), encoding="utf-8")
     (raw / "deals.json").write_text(json.dumps(deals, ensure_ascii=False), encoding="utf-8")
     (ROOT / "ref.js").write_text("window.REF = " + json.dumps(ref.get("values", []), ensure_ascii=False) + ";", encoding="utf-8")
