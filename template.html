@@ -465,8 +465,8 @@ footer.method b { color: var(--ink); font-weight: 600; }
       <div class="chart-box" style="height:300px"><canvas id="ch-cmonth"></canvas></div>
     </article>
     <article class="card third">
-      <h2>Наша доля рынка</h2>
-      <p class="sub">Доля наших сделок среди всех сделок локации по месяцам, %</p>
+      <h2 id="cshare-h">Наша доля рынка</h2>
+      <p class="sub" id="cshare-sub">Доля наших сделок среди всех сделок локации по месяцам, %</p>
       <div class="chart-box" style="height:300px"><canvas id="ch-cshare"></canvas></div>
     </article>
     <article class="card third">
@@ -539,7 +539,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
   </section>
 
   <footer class="method">
-    <div><b>Источники.</b> Сделки конкурентов — лист «Сделки» книги «Копия Алиса: план, дцо, прайс»: дата договора (столбец AI), комнатность по данным Объектива (U), площадь сводная с коэф. 0,3/0,5 (X), расчётный бюджет лота (Y), ипотека по типу обременения (AO). Наши сделки — таблица «Сделки — сводная (Бестселлер, Алиса, ДМД2)», лист «Все сделки», площадь с коэффициентом 0,3/0,5 (столбец J). Состав конкурентов — справочник: для Алисы её список, для ДМД2 список «Милого дома».</div>
+    <div><b>Источники.</b> Сделки конкурентов — лист «Сделки» книги «Копия Алиса: план, дцо, прайс»: дата договора (столбец AI), комнатность по данным Объектива (U), площадь сводная с коэф. 0,3/0,5 (X), расчётный бюджет лота (Y), ипотека по типу обременения (AO). Наши сделки — таблица «Сделки — сводная (Бестселлер, Алиса, ДМД2)», лист «Все сделки», площадь с коэффициентом 0,3/0,5 (столбец J). Состав конкурентов — справочник: для Алисы её список, для ДМД2 список «Милого дома», для РЖД список «Конкуренты_РЖД» (наших сделок по РЖД нет).</div>
     <div><b>Расчёты.</b> Везде используются площади с коэффициентом 0,3/0,5. Цена м² — сумма договоров к сумме площадей с коэф. 0,3/0,5. Доля рынка — наши сделки к сумме наших и конкурентских за тот же период. Темп — сделки, делённые на число месяцев периода. По умолчанию выбран период, за который есть данные и по нашим сделкам, и по конкурентам. Сделки конкурентов попадают в выгрузку после регистрации договора, поэтому последний месяц может быть неполным.</div>
   </footer>
 </main>
@@ -666,7 +666,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
   function renderTabs() {
     const el = document.getElementById("tabs");
     if (S.mode === "cdeals") {
-      el.innerHTML = Object.entries(CLOC).map(([k, O]) => `<button class="tab" role="tab" aria-selected="${k === CS.loc}" data-l="${k}">${esc(O.label)}<span class="cnt">${cOwnRows(k).length}</span></button>`).join("");
+      el.innerHTML = Object.entries(CLOC).map(([k, O]) => `<button class="tab" role="tab" aria-selected="${k === CS.loc}" data-l="${k}">${esc(O.label)}${O.noOwn ? "" : `<span class="cnt">${cOwnRows(k).length}</span>`}</button>`).join("");
       el.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => { CS.loc = b.dataset.l; cdealsReset(); try { history.replaceState(null, "", "#" + cdealsHashOf()); } catch (e) {} renderAll(); }));
       return;
     }
@@ -1668,10 +1668,11 @@ footer.method b { color: var(--ink); font-weight: 600; }
   // локации: наш проект в таблице «Все сделки» и группа конкурентов из справочника
   const CLOC = {
     alisa: { label: "Алиса", obj: "Алиса", grp: "alisa" },
-    dmd2: { label: "ДМД2", obj: "ДМД2", grp: "md" }
+    dmd2: { label: "ДМД2", obj: "ДМД2", grp: "md" },
+    rzd: { label: "РЖД", obj: "", grp: "rzd", noOwn: true }  // наших сделок нет, только рынок локации
   };
   const CS = { loc: "alisa", from: "", to: "", rooms: null, comps: null, ct: null, mort: "all", sort: { k: "n", asc: false } };
-  const cOwnRows = loc => DEALS.filter(d => d.obj === CLOC[loc].obj).map(d => ({ p: CLOC[loc].label, own: true, date: d.date, month: d.month, rooms: roomKey(d.rooms), area: d.area, budget: d.price, mort: d.pay === "Ипотека" ? 1 : 0, ct: "", sl: "" })); // площадь с коэф. 0,3/0,5 (столбец J)
+  const cOwnRows = loc => CLOC[loc].noOwn ? [] : DEALS.filter(d => d.obj === CLOC[loc].obj).map(d => ({ p: CLOC[loc].label, own: true, date: d.date, month: d.month, rooms: roomKey(d.rooms), area: d.area, budget: d.price, mort: d.pay === "Ипотека" ? 1 : 0, ct: "", sl: "" })); // площадь с коэф. 0,3/0,5 (столбец J)
   const cCompNames = loc => { const g = GROUPS[CLOC[loc].grp]; const have = new Set(CROWS.map(r => r.p)); return g ? g.comps.filter(p => have.has(p)) : []; };
   const cCompNamesAll = loc => { const g = GROUPS[CLOC[loc].grp]; return g ? g.comps : []; };
   const CTYPES = () => uniq(CROWS.map(r => r.ct)).sort((a, b) => (a === "ДДУ" ? -1 : b === "ДДУ" ? 1 : a.localeCompare(b, "ru")));
@@ -1721,13 +1722,23 @@ footer.method b { color: var(--ink); font-weight: 600; }
   document.getElementById("c-to").addEventListener("change", e => { CS.to = e.target.value; if (CS.from > CS.to) CS.from = CS.to; renderAll(); });
   document.getElementById("c-reset").addEventListener("click", () => { cdealsReset(); renderAll(); });
 
+  function cMarketTiles(c, nP) {
+    return [
+      { label: "Сделки конкурентов", val: c ? nf0.format(c.n) : "0", sub: c ? `в ${nP} проектах · ${nf1.format(c.pace)} в месяц` : "нет сделок при выбранных фильтрах" },
+      { label: "Темп на проект", val: c ? nf1.format(c.pace / Math.max(nP, 1)) : "—", unit: "сд./мес", sub: "среднее по проектам локации" },
+      { label: "Цена м² сделок · конкуренты", val: c ? th(c.ppm) : "—", unit: "тыс. ₽", sub: c ? `по сделкам от ${th(c.min)} до ${th(c.max)} тыс. ₽ · площадь с коэф. 0,3/0,5` : "" },
+      { label: "Средний бюджет · конкуренты", val: c ? mln(c.budget) : "—", unit: "млн ₽", sub: "" },
+      { label: "Средняя площадь с коэф. 0,3/0,5 · конкуренты", val: c ? nf1.format(c.area) : "—", unit: "м²", sub: "" },
+      { label: "Доля ипотеки · конкуренты", val: c ? nf0.format(c.mort * 100) + " %" : "—", sub: c ? `ДКП — ${nf0.format(c.dkp * 100)} % сделок` : "" }
+    ];
+  }
   function renderCdealsKpis(V) {
     const o = cstats(V.own, V.months), c = cstats(V.comps, V.months);
     const rel = (a, b) => (a && b) ? a / b - 1 : null;
     const share = o || c ? (o ? o.n : 0) / ((o ? o.n : 0) + (c ? c.n : 0)) : null;
     const nP = Object.keys(V.byP).length, lbl = CLOC[CS.loc].label;
     const vs = (ov, cv, fmt) => cv == null ? "" : `у конкурентов ${fmt(cv)}${ov != null ? ` (<span class="d">${pct(rel(ov, cv))}</span>)` : ""}`;
-    const tiles = [
+    const tiles = CLOC[CS.loc].noOwn ? cMarketTiles(c, nP) : [
       { own: true, label: `Наши сделки · ${lbl}`, val: o ? nf0.format(o.n) : "0", sub: share != null ? `доля рынка <span class="d">${nf1.format(share * 100)} %</span> · ${o ? nf1.format(o.pace) : 0} в месяц` : "" },
       { label: "Сделки конкурентов", val: c ? nf0.format(c.n) : "0", sub: c ? `в ${nP} проектах · ${nf1.format(c.pace / Math.max(nP, 1))} в месяц на проект` : "нет сделок при выбранных фильтрах" },
       { own: true, label: "Цена м² сделок · наш проект", val: o ? th(o.ppm) : "—", unit: "тыс. ₽", sub: vs(o && o.ppm, c && c.ppm, v => th(v) + " тыс. ₽") + " · площадь с коэф. 0,3/0,5" },
@@ -1739,6 +1750,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     const note = document.getElementById("c-note");
     const last = CS.to; const lastComp = V.comps.filter(r => r.month === last).length, prevComp = V.comps.filter(r => r.month < last).length / Math.max(V.months - 1, 1);
     note.innerHTML = !CDT ? "Сделки конкурентов не загружены: при следующем автообновлении данные появятся." : (V.months > 1 && lastComp < prevComp * 0.6 ? `<b>${monthLong(last)}:</b> у конкурентов ${lastComp} сделок при среднем ${nf0.format(prevComp)} в месяц — вероятно, не все договоры этого месяца ещё зарегистрированы.` : "");
+    if (CLOC[CS.loc].noOwn) note.innerHTML = `<b>${esc(lbl)}:</b> наших сделок в этой локации нет, показаны сделки конкурентов.` + (note.innerHTML ? " " + note.innerHTML : "");
     note.hidden = !note.innerHTML;
   }
 
@@ -1750,14 +1762,14 @@ footer.method b { color: var(--ink); font-weight: 600; }
   }
   function renderCdealsMonthly(V) {
     const M = cMonthly(V), B = baseOpts(), own = cssv("--own"), comp = cssv("--comp"), mkt = cssv("--market"), surface = cssv("--surface");
-    const lbl = CLOC[CS.loc].label;
+    const lbl = CLOC[CS.loc].label, noOwn = !!CLOC[CS.loc].noOwn;
     kill("cmonth");
     charts.cmonth = new Chart(document.getElementById("ch-cmonth"), {
       type: "bar",
       data: { labels: M.ms.map(monthLabel), datasets: [
         { label: lbl, data: M.own.map(l => l.length), backgroundColor: own, borderColor: surface, borderWidth: { top: 2 }, borderSkipped: "bottom", borderRadius: 3, stack: "s", barPercentage: .75 },
         { label: "Конкуренты", data: M.comp.map(l => l.length), backgroundColor: comp, borderRadius: 3, stack: "s", barPercentage: .75 }
-      ] },
+      ].filter(d => !(noOwn && d.label === lbl)) },
       options: Object.assign({}, B, {
         layout: { padding: { top: 18 } },
         scales: { x: { stacked: true, grid: { display: false }, border: { color: B.grid } }, y: { stacked: true, beginAtZero: true, grid: { color: B.grid }, border: { display: false }, ticks: { precision: 0 } } },
@@ -1772,16 +1784,28 @@ footer.method b { color: var(--ink); font-weight: 600; }
       plugins: { legend: B.plugins.legend, tooltip: Object.assign({}, B.plugins.tooltip, { filter: it => it.raw != null, callbacks: { label: fmt } }) }
     });
     kill("cshare");
+    document.getElementById("cshare-h").textContent = noOwn ? "Доли проектов в сделках" : "Наша доля рынка";
+    document.getElementById("cshare-sub").textContent = noOwn ? "Доля каждого проекта в сделках локации за период, %" : "Доля наших сделок среди всех сделок локации по месяцам, %";
+    if (noOwn) {
+      const tot = V.comps.length, it = Object.entries(V.byP).map(([p, l]) => ({ p, n: l.length })).sort((a, b) => b.n - a.n);
+      charts.cshare = new Chart(document.getElementById("ch-cshare"), { type: "bar",
+        data: { labels: it.map(x => wrapLabel(x.p, 18)), datasets: [{ data: it.map(x => tot ? x.n / tot : 0), backgroundColor: comp, borderRadius: { topRight: 4, bottomRight: 4 }, borderSkipped: "start", barPercentage: .8 }] },
+        options: Object.assign({}, B, { indexAxis: "y", layout: { padding: { right: 44 } },
+          scales: { x: { beginAtZero: true, grid: { color: B.grid }, border: { display: false }, ticks: { callback: v => nf0.format(v * 100) + " %" } }, y: { grid: { display: false }, border: { color: B.grid }, ticks: { color: B.ink2, autoSkip: false, font: { size: 11 } } } },
+          plugins: { legend: { display: false }, endLabels: { color: B.ink2, fmt: v => nf1.format(v * 100) + " %" }, tooltip: Object.assign({}, B.plugins.tooltip, { displayColors: false, callbacks: { title: c => it[c[0].dataIndex].p, label: c => `${nf1.format(c.raw * 100)} % · ${it[c.dataIndex].n} сд.` } }) } }),
+        plugins: [endLabels] });
+    } else {
     const share = M.ms.map((m, i) => { const a = M.own[i].length, b = M.comp[i].length; return a + b ? a / (a + b) : null; });
     charts.cshare = new Chart(document.getElementById("ch-cshare"), { type: "line", data: { labels: M.ms.map(monthLabel), datasets: [lineDs(`Доля ${lbl}`, share, own)] },
       options: lineOpts(v => nf0.format(v * 100) + " %", c => `${nf1.format(c.raw * 100)} % (${M.own[c.dataIndex].length} из ${M.own[c.dataIndex].length + M.comp[c.dataIndex].length} сд.)`, { beginAtZero: true }) });
+    }
     kill("cppm");
     const ppm = L => { const s = cstats(L); return s ? s.ppm : null; };
-    charts.cppm = new Chart(document.getElementById("ch-cppm"), { type: "line", data: { labels: M.ms.map(monthLabel), datasets: [lineDs("Конкуренты", M.comp.map(ppm), mkt, 2), lineDs(lbl, M.own.map(ppm), own)] },
+    charts.cppm = new Chart(document.getElementById("ch-cppm"), { type: "line", data: { labels: M.ms.map(monthLabel), datasets: [lineDs("Конкуренты", M.comp.map(ppm), mkt, 2), lineDs(lbl, M.own.map(ppm), own)].filter((d, i) => !(noOwn && i === 1)) },
       options: lineOpts(v => nf0.format(v / 1000), c => `${c.dataset.label}: ${th(c.raw)} тыс. ₽/м² (${(c.datasetIndex ? M.own : M.comp)[c.dataIndex].length} сд.)`) });
     kill("cmortm");
     const mort = L => L.length ? L.filter(r => r.mort).length / L.length : null;
-    charts.cmortm = new Chart(document.getElementById("ch-cmortm"), { type: "line", data: { labels: M.ms.map(monthLabel), datasets: [lineDs("Конкуренты", M.comp.map(mort), mkt, 2), lineDs(lbl, M.own.map(mort), own)] },
+    charts.cmortm = new Chart(document.getElementById("ch-cmortm"), { type: "line", data: { labels: M.ms.map(monthLabel), datasets: [lineDs("Конкуренты", M.comp.map(mort), mkt, 2), lineDs(lbl, M.own.map(mort), own)].filter((d, i) => !(noOwn && i === 1)) },
       options: lineOpts(v => nf0.format(v * 100) + " %", c => `${c.dataset.label}: ${nf0.format(c.raw * 100)} % (${(c.datasetIndex ? M.own : M.comp)[c.dataIndex].length} сд.)`, { beginAtZero: true, max: 1 }) });
   }
 
@@ -2012,7 +2036,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     document.getElementById("nav-cdeals").setAttribute("aria-pressed", cdeals);
     if (cdeals) {
       document.getElementById("page-title").textContent = "Сделки конкурентов";
-      document.getElementById("asof").textContent = `${CLOC[CS.loc].label} и конкуренты · договоры ${CS.from ? monthLong(CS.from) : ""} – ${CS.to ? monthLong(CS.to) : ""}`;
+      document.getElementById("asof").textContent = `${CLOC[CS.loc].label}${CLOC[CS.loc].noOwn ? ": конкуренты локации" : " и конкуренты"} · договоры ${CS.from ? monthLong(CS.from) : ""} – ${CS.to ? monthLong(CS.to) : ""}`;
       renderTabs(); renderCdeals(); return;
     }
     document.getElementById("page-title").textContent = deals ? "Сделки" : "Конкурентный срез";
