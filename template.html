@@ -234,6 +234,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
       <nav class="nav-sec" aria-label="Разделы">
         <button class="nav-btn" id="nav-offer" type="button" aria-pressed="true">Предложение</button>
         <button class="nav-btn" id="nav-deals" type="button" aria-pressed="false">Сделки</button>
+        <button class="nav-btn" id="nav-cdeals" type="button" aria-pressed="false">Сделки конкурентов</button>
       </nav>
     </div>
     <div class="tabs" role="tablist" id="tabs"></div>
@@ -440,11 +441,115 @@ footer.method b { color: var(--ink); font-weight: 600; }
   </footer>
 </main>
 
+<main class="wrap" id="view-cdeals" hidden>
+  <section class="filters" aria-label="Фильтры сделок конкурентов">
+    <div class="fgroup"><span class="flabel">Период</span>
+      <div class="period"><select id="c-from" aria-label="С месяца"></select><span>–</span><select id="c-to" aria-label="По месяц"></select></div>
+    </div>
+    <div class="fgroup"><span class="flabel">Комнатность</span><div class="chips" id="c-rooms"></div></div>
+    <div class="fgroup"><span class="flabel">Оплата</span><div class="seg" id="c-mort"></div></div>
+    <div class="fgroup"><span class="flabel">Тип договора конкурентов</span><div class="chips" id="c-ct"></div></div>
+    <div class="fgroup"><span class="flabel">Конкуренты</span>
+      <details class="dd" id="c-comps"><summary id="c-comps-sum">Все</summary><div class="dd-panel" id="c-comps-panel"></div></details>
+    </div>
+    <div class="fgroup reset"><button class="more" id="c-reset" type="button">Сбросить фильтры</button></div>
+  </section>
+  <p class="note" id="c-note" hidden></p>
+
+  <section class="kpis" id="c-kpis" aria-label="Показатели сделок"></section>
+
+  <section class="grid">
+    <article class="card third">
+      <h2>Сделки по месяцам</h2>
+      <p class="sub">Число договоров: наш проект и конкуренты локации</p>
+      <div class="chart-box" style="height:300px"><canvas id="ch-cmonth"></canvas></div>
+    </article>
+    <article class="card third">
+      <h2>Наша доля рынка</h2>
+      <p class="sub">Доля наших сделок среди всех сделок локации по месяцам, %</p>
+      <div class="chart-box" style="height:300px"><canvas id="ch-cshare"></canvas></div>
+    </article>
+    <article class="card third">
+      <h2>Цена м² сделок по месяцам</h2>
+      <p class="sub">Сумма договоров к сумме площадей, тыс. ₽/м²</p>
+      <div class="chart-box" style="height:300px"><canvas id="ch-cppm"></canvas></div>
+    </article>
+
+    <article class="card third">
+      <h2>Сделок за период</h2>
+      <p class="sub">Число договоров по проектам</p>
+      <div class="chart-box" id="box-cr-n"><canvas></canvas></div>
+    </article>
+    <article class="card third">
+      <h2>Темп продаж</h2>
+      <p class="sub">Сделок в месяц за выбранный период</p>
+      <div class="chart-box" id="box-cr-pace"><canvas></canvas></div>
+    </article>
+    <article class="card third">
+      <h2>Цена м² сделок</h2>
+      <p class="sub">Средняя цена м² по договорам, тыс. ₽</p>
+      <div class="chart-box" id="box-cr-ppm"><canvas></canvas></div>
+    </article>
+
+    <article class="card third">
+      <h2>Средний бюджет сделки</h2>
+      <p class="sub">Средняя сумма договора, млн ₽</p>
+      <div class="chart-box" id="box-cr-budget"><canvas></canvas></div>
+    </article>
+    <article class="card third">
+      <h2>Средняя площадь сделки</h2>
+      <p class="sub">Средняя площадь проданной квартиры, м²</p>
+      <div class="chart-box" id="box-cr-area"><canvas></canvas></div>
+    </article>
+    <article class="card third">
+      <h2>Доля ипотеки</h2>
+      <p class="sub">Доля сделок с ипотекой, %</p>
+      <div class="chart-box" id="box-cr-mort"><canvas></canvas></div>
+    </article>
+
+    <article class="card half">
+      <h2>Структура сделок по комнатности</h2>
+      <p class="sub">Доля студий, 1к, 2к и 3к+ в сделках проекта, %</p>
+      <div class="chart-box" id="box-cmix"><canvas></canvas></div>
+    </article>
+    <article class="card half">
+      <h2>Доля ипотеки по месяцам</h2>
+      <p class="sub">Наш проект против конкурентов локации, %</p>
+      <div class="chart-box" style="height:340px"><canvas id="ch-cmortm"></canvas></div>
+    </article>
+
+    <article class="card full">
+      <h2>Цена м² сделок по комнатности</h2>
+      <p class="sub">Средняя цена м², тыс. ₽, и число сделок. Отклонение у конкурентов считается от нашего проекта в той же комнатности</p>
+      <div class="legend-row">
+        <span><span class="sw" style="background:var(--ink);box-shadow:inset 3px 0 0 var(--own)"></span>наш проект</span>
+        <span><span class="sw" style="background:var(--c3)"></span>конкурент дешевле на 10 % и больше</span>
+        <span><span class="sw" style="background:var(--c1)"></span>дешевле на 1–5 %</span>
+        <span><span class="sw" style="background:var(--w1)"></span>дороже на 1–5 %</span>
+        <span><span class="sw" style="background:var(--w3)"></span>дороже на 10 % и больше</span>
+      </div>
+      <div class="tbl-wrap"><table id="tbl-cmatrix"></table></div>
+    </article>
+
+    <article class="card full">
+      <h2>Сводка по проектам</h2>
+      <p class="sub">Сортировка по клику на заголовок</p>
+      <div class="tbl-wrap"><table id="tbl-csum"></table></div>
+    </article>
+  </section>
+
+  <footer class="method">
+    <div><b>Источники.</b> Сделки конкурентов — лист «Сделки» книги «Копия Алиса: план, дцо, прайс»: дата договора (столбец AI), комнатность по данным Объектива (U), площадь сводная (X), расчётный бюджет лота (Y), ипотека по типу обременения (AO). Наши сделки — таблица «Сделки — сводная (Бестселлер, Алиса, ДМД2)», лист «Все сделки». Состав конкурентов — справочник: для Алисы её список, для ДМД2 список «Милого дома».</div>
+    <div><b>Расчёты.</b> Цена м² — сумма договоров к сумме площадей. Доля рынка — наши сделки к сумме наших и конкурентских за тот же период. Темп — сделки, делённые на число месяцев периода. По умолчанию выбран период, за который есть данные и по нашим сделкам, и по конкурентам. Сделки конкурентов попадают в выгрузку после регистрации договора, поэтому последний месяц может быть неполным.</div>
+  </footer>
+</main>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>/*__META__*/</script>
 <script>/*__REF__*/</script>
 <script>/*__DATA__*/</script>
 <script>/*__DEALS__*/</script>
+<script>/*__CDEALS__*/</script>
 <script>
 (function () {
   "use strict";
@@ -501,7 +606,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
   const dealsHash = !initialG || initialG.startsWith("deals");
   const S = {
     g: GROUPS[initialG] ? initialG : (GROUPS[store.get("cs.g")] ? store.get("cs.g") : "alisa"),
-    mode: dealsHash ? "deals" : "comp",
+    mode: initialG.startsWith("cdeals") ? "cdeals" : dealsHash ? "deals" : "comp",
     price: store.get("cs.price") === "list" ? "list" : "disc",
     sort: ["ppm", "area", "budget", "name"].includes(store.get("cs.sort")) ? store.get("cs.sort") : "ppm",
     floor: store.get("cs.floor") === "abs" ? "abs" : "idx",
@@ -560,6 +665,11 @@ footer.method b { color: var(--ink); font-weight: 600; }
   // ---------- UI: tabs & filters ----------
   function renderTabs() {
     const el = document.getElementById("tabs");
+    if (S.mode === "cdeals") {
+      el.innerHTML = Object.entries(CLOC).map(([k, O]) => `<button class="tab" role="tab" aria-selected="${k === CS.loc}" data-l="${k}">${esc(O.label)}<span class="cnt">${cOwnRows(k).length}</span></button>`).join("");
+      el.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => { CS.loc = b.dataset.l; cdealsReset(); try { history.replaceState(null, "", "#" + cdealsHashOf()); } catch (e) {} renderAll(); }));
+      return;
+    }
     if (S.mode === "deals") {
       // проекты выбираются в любом сочетании; последний выбранный снять нельзя
       el.innerHTML = Object.entries(DOBJ).map(([k, O]) => `<button class="tab" type="button" aria-pressed="${DS.objs.has(k)}" data-o="${k}" title="Нажмите, чтобы добавить или убрать проект">${esc(O.label)}<span class="cnt">${DEALS.filter(O.f).length}</span></button>`).join("");
@@ -1552,14 +1662,250 @@ footer.method b { color: var(--ink); font-weight: 600; }
     renderPies(L); renderDiscKinds(L); renderPayHow(L); renderBanks(L); renderManagers(L); renderAgencies(L); renderRoomsTable(L); renderDealsTable(L);
   }
 
+  // ================= раздел «Сделки конкурентов» =================
+  const CDT = window.CDEALS;
+  const CROWS = CDT ? CDT.rows.map(r => ({ p: CDT.dicts.p[r[0]], date: r[1], month: r[1].slice(0, 7), rooms: r[2], area: r[3], budget: r[4], mort: r[5], ct: CDT.dicts.ct[r[6]] || "", sl: CDT.dicts.sl[r[7]] || "", floor: r[8] })) : [];
+  // локации: наш проект в таблице «Все сделки» и группа конкурентов из справочника
+  const CLOC = {
+    alisa: { label: "Алиса", obj: "Алиса", grp: "alisa" },
+    dmd2: { label: "ДМД2", obj: "ДМД2", grp: "md" }
+  };
+  const CS = { loc: "alisa", from: "", to: "", rooms: null, comps: null, ct: null, mort: "all", sort: { k: "n", asc: false } };
+  const cOwnRows = loc => DEALS.filter(d => d.obj === CLOC[loc].obj).map(d => ({ p: CLOC[loc].label, own: true, date: d.date, month: d.month, rooms: roomKey(d.rooms), area: d.area, budget: d.price, mort: d.pay === "Ипотека" ? 1 : 0, ct: "", sl: "" }));
+  const cCompNames = loc => { const g = GROUPS[CLOC[loc].grp]; const have = new Set(CROWS.map(r => r.p)); return g ? g.comps.filter(p => have.has(p)) : []; };
+  const cCompNamesAll = loc => { const g = GROUPS[CLOC[loc].grp]; return g ? g.comps : []; };
+  const CTYPES = () => uniq(CROWS.map(r => r.ct)).sort((a, b) => (a === "ДДУ" ? -1 : b === "ДДУ" ? 1 : a.localeCompare(b, "ru")));
+  const monthsBetween = (a, b) => { if (!a || !b) return 0; return (+b.slice(0, 4) - +a.slice(0, 4)) * 12 + (+b.slice(5, 7) - +a.slice(5, 7)) + 1; };
+  const monthList = (a, b) => { const out = []; let y = +a.slice(0, 4), m = +a.slice(5, 7); while (out.length < 120) { const k = `${y}-${String(m).padStart(2, "0")}`; out.push(k); if (k >= b) break; m++; if (m > 12) { m = 1; y++; } } return out; };
+
+  function cdealsReset() {
+    const own = cOwnRows(CS.loc), comps = cCompNames(CS.loc);
+    const cm = uniq(CROWS.filter(r => comps.includes(r.p)).map(r => r.month)).sort(), om = uniq(own.map(r => r.month)).sort();
+    // по умолчанию — месяцы, за которые есть и наши сделки, и сделки конкурентов
+    const lo = [cm[0], om[0]].filter(Boolean).sort().pop() || "", hi = [cm[cm.length - 1], om[om.length - 1]].filter(Boolean).sort()[0] || "";
+    CS.from = lo && hi && lo <= hi ? lo : (cm[0] || om[0] || ""); CS.to = lo && hi && lo <= hi ? hi : (cm[cm.length - 1] || om[om.length - 1] || "");
+    CS.rooms = new Set(ROOMS); CS.comps = new Set(comps); CS.ct = new Set(CTYPES()); CS.mort = "all";
+  }
+  const cMonthsAll = () => { const own = cOwnRows(CS.loc), comps = cCompNames(CS.loc); return uniq(CROWS.filter(r => comps.includes(r.p)).map(r => r.month).concat(own.map(r => r.month))).sort(); };
+  function cdealsView() {
+    const pass = r => r.month >= CS.from && r.month <= CS.to && CS.rooms.has(roomKey(r.rooms)) && (CS.mort === "all" || (CS.mort === "yes" ? r.mort : !r.mort));
+    const own = cOwnRows(CS.loc).filter(pass);
+    const comps = CROWS.filter(r => CS.comps.has(r.p) && CS.ct.has(r.ct) && pass(r));
+    const byP = {}; comps.forEach(r => (byP[r.p] = byP[r.p] || []).push(r));
+    return { own, comps, byP, months: monthsBetween(CS.from, CS.to) };
+  }
+  function cstats(L, months) {
+    if (!L || !L.length) return null;
+    const area = L.reduce((a, r) => a + r.area, 0), budget = L.reduce((a, r) => a + r.budget, 0), mort = L.reduce((a, r) => a + (r.mort ? 1 : 0), 0);
+    const pp = L.map(r => r.budget / r.area).sort((a, b) => a - b);
+    return { n: L.length, ppm: budget / area, budget: budget / L.length, area: area / L.length, mort: mort / L.length, pace: months ? L.length / months : null, min: pp[0], max: pp[pp.length - 1], dkp: L.filter(r => r.ct === "ДКП").length / L.length };
+  }
+
+  function renderCdealsFilters() {
+    const ms = cMonthsAll();
+    const opts = ms.map(m => `<option value="${m}">${monthLong(m)}</option>`).join("");
+    const f = document.getElementById("c-from"), t = document.getElementById("c-to");
+    f.innerHTML = opts; t.innerHTML = opts; f.value = CS.from; t.value = CS.to;
+    chipGroup("c-rooms", ROOMS.filter(x => x !== "4+" || CROWS.some(r => r.rooms === "4+")), CS.rooms, v => ROOM_LABEL[v]);
+    chipGroup("c-ct", CTYPES(), CS.ct);
+    segGroup("c-mort", [["all", "Все"], ["yes", "Ипотека"], ["no", "Без ипотеки"]], CS.mort, v => { CS.mort = v; });
+    const all = cCompNamesAll(CS.loc), have = new Set(cCompNames(CS.loc));
+    const panel = document.getElementById("c-comps-panel");
+    panel.innerHTML = `<div class="dd-actions"><button class="link-btn" type="button" data-a="all">Выбрать всех</button><button class="link-btn" type="button" data-a="none">Снять всех</button></div>` +
+      all.map(p => have.has(p) ? `<label><input type="checkbox" data-p="${esc(p)}" ${CS.comps.has(p) ? "checked" : ""}>${esc(p)}<span class="n">${CROWS.filter(r => r.p === p).length}</span></label>` : `<label class="off"><input type="checkbox" disabled>${esc(p)}<span class="n">нет сделок</span></label>`).join("");
+    panel.querySelectorAll("input[data-p]").forEach(cb => cb.addEventListener("change", () => { if (cb.checked) CS.comps.add(cb.dataset.p); else CS.comps.delete(cb.dataset.p); renderAll(); }));
+    panel.querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => { CS.comps = b.dataset.a === "all" ? new Set(have) : new Set(); renderAll(); }));
+    document.getElementById("c-comps-sum").textContent = CS.comps.size === have.size ? `Все (${have.size})` : `${CS.comps.size} из ${have.size}`;
+  }
+  document.getElementById("c-from").addEventListener("change", e => { CS.from = e.target.value; if (CS.to < CS.from) CS.to = CS.from; renderAll(); });
+  document.getElementById("c-to").addEventListener("change", e => { CS.to = e.target.value; if (CS.from > CS.to) CS.from = CS.to; renderAll(); });
+  document.getElementById("c-reset").addEventListener("click", () => { cdealsReset(); renderAll(); });
+
+  function renderCdealsKpis(V) {
+    const o = cstats(V.own, V.months), c = cstats(V.comps, V.months);
+    const rel = (a, b) => (a && b) ? a / b - 1 : null;
+    const share = o || c ? (o ? o.n : 0) / ((o ? o.n : 0) + (c ? c.n : 0)) : null;
+    const nP = Object.keys(V.byP).length, lbl = CLOC[CS.loc].label;
+    const vs = (ov, cv, fmt) => cv == null ? "" : `у конкурентов ${fmt(cv)}${ov != null ? ` (<span class="d">${pct(rel(ov, cv))}</span>)` : ""}`;
+    const tiles = [
+      { own: true, label: `Наши сделки · ${lbl}`, val: o ? nf0.format(o.n) : "0", sub: share != null ? `доля рынка <span class="d">${nf1.format(share * 100)} %</span> · ${o ? nf1.format(o.pace) : 0} в месяц` : "" },
+      { label: "Сделки конкурентов", val: c ? nf0.format(c.n) : "0", sub: c ? `в ${nP} проектах · ${nf1.format(c.pace / Math.max(nP, 1))} в месяц на проект` : "нет сделок при выбранных фильтрах" },
+      { own: true, label: "Цена м² сделок · наш проект", val: o ? th(o.ppm) : "—", unit: "тыс. ₽", sub: vs(o && o.ppm, c && c.ppm, v => th(v) + " тыс. ₽") },
+      { own: true, label: "Средний бюджет · наш проект", val: o ? mln(o.budget) : "—", unit: "млн ₽", sub: vs(o && o.budget, c && c.budget, v => mln(v) + " млн ₽") },
+      { own: true, label: "Средняя площадь · наш проект", val: o ? nf1.format(o.area) : "—", unit: "м²", sub: vs(o && o.area, c && c.area, v => nf1.format(v) + " м²") },
+      { own: true, label: "Доля ипотеки · наш проект", val: o ? nf0.format(o.mort * 100) + " %" : "—", sub: c ? `у конкурентов ${nf0.format(c.mort * 100)} %` : "" }
+    ];
+    document.getElementById("c-kpis").innerHTML = tiles.map(t => `<div class="kpi${t.own ? " own" : ""}"><span class="k-label">${esc(t.label)}</span><span class="k-val">${t.val}${t.unit && t.val !== "—" ? `<small>${t.unit}</small>` : ""}</span><span class="k-sub">${t.sub || "&nbsp;"}</span></div>`).join("");
+    const note = document.getElementById("c-note");
+    const last = CS.to; const lastComp = V.comps.filter(r => r.month === last).length, prevComp = V.comps.filter(r => r.month < last).length / Math.max(V.months - 1, 1);
+    note.innerHTML = !CDT ? "Сделки конкурентов не загружены: при следующем автообновлении данные появятся." : (V.months > 1 && lastComp < prevComp * 0.6 ? `<b>${monthLong(last)}:</b> у конкурентов ${lastComp} сделок при среднем ${nf0.format(prevComp)} в месяц — вероятно, не все договоры этого месяца ещё зарегистрированы.` : "");
+    note.hidden = !note.innerHTML;
+  }
+
+  // ряды по месяцам: наш проект и все выбранные конкуренты
+  function cMonthly(V) {
+    const ms = monthList(CS.from, CS.to);
+    const by = (L, m) => L.filter(r => r.month === m);
+    return { ms, own: ms.map(m => by(V.own, m)), comp: ms.map(m => by(V.comps, m)) };
+  }
+  function renderCdealsMonthly(V) {
+    const M = cMonthly(V), B = baseOpts(), own = cssv("--own"), comp = cssv("--comp"), mkt = cssv("--market"), surface = cssv("--surface");
+    const lbl = CLOC[CS.loc].label;
+    kill("cmonth");
+    charts.cmonth = new Chart(document.getElementById("ch-cmonth"), {
+      type: "bar",
+      data: { labels: M.ms.map(monthLabel), datasets: [
+        { label: lbl, data: M.own.map(l => l.length), backgroundColor: own, borderColor: surface, borderWidth: { top: 2 }, borderSkipped: "bottom", borderRadius: 3, stack: "s", barPercentage: .75 },
+        { label: "Конкуренты", data: M.comp.map(l => l.length), backgroundColor: comp, borderRadius: 3, stack: "s", barPercentage: .75 }
+      ] },
+      options: Object.assign({}, B, {
+        layout: { padding: { top: 18 } },
+        scales: { x: { stacked: true, grid: { display: false }, border: { color: B.grid } }, y: { stacked: true, beginAtZero: true, grid: { color: B.grid }, border: { display: false }, ticks: { precision: 0 } } },
+        plugins: { legend: B.plugins.legend, topLabels: { color: B.ink2, fmt: v => nf0.format(v) }, tooltip: Object.assign({}, B.plugins.tooltip, { mode: "index", intersect: false, callbacks: { label: c => `${c.dataset.label}: ${c.raw} сд.` } }) }
+      }),
+      plugins: [topLabels]
+    });
+    const lineDs = (label, data, color, w) => ({ label, data, borderColor: color, backgroundColor: color, borderWidth: w || 2.5, pointRadius: 4, pointHoverRadius: 6, pointBorderColor: surface, pointBorderWidth: 2, spanGaps: true, cubicInterpolationMode: "monotone" });
+    const lineOpts = (yTick, fmt, extraY) => Object.assign({}, B, {
+      interaction: { mode: "index", intersect: false },
+      scales: { x: { grid: { display: false }, border: { color: B.grid } }, y: Object.assign({ grid: { color: B.grid }, border: { display: false }, ticks: { callback: yTick } }, extraY || {}) },
+      plugins: { legend: B.plugins.legend, tooltip: Object.assign({}, B.plugins.tooltip, { filter: it => it.raw != null, callbacks: { label: fmt } }) }
+    });
+    kill("cshare");
+    const share = M.ms.map((m, i) => { const a = M.own[i].length, b = M.comp[i].length; return a + b ? a / (a + b) : null; });
+    charts.cshare = new Chart(document.getElementById("ch-cshare"), { type: "line", data: { labels: M.ms.map(monthLabel), datasets: [lineDs(`Доля ${lbl}`, share, own)] },
+      options: lineOpts(v => nf0.format(v * 100) + " %", c => `${nf1.format(c.raw * 100)} % (${M.own[c.dataIndex].length} из ${M.own[c.dataIndex].length + M.comp[c.dataIndex].length} сд.)`, { beginAtZero: true }) });
+    kill("cppm");
+    const ppm = L => { const s = cstats(L); return s ? s.ppm : null; };
+    charts.cppm = new Chart(document.getElementById("ch-cppm"), { type: "line", data: { labels: M.ms.map(monthLabel), datasets: [lineDs("Конкуренты", M.comp.map(ppm), mkt, 2), lineDs(lbl, M.own.map(ppm), own)] },
+      options: lineOpts(v => nf0.format(v / 1000), c => `${c.dataset.label}: ${th(c.raw)} тыс. ₽/м² (${(c.datasetIndex ? M.own : M.comp)[c.dataIndex].length} сд.)`) });
+    kill("cmortm");
+    const mort = L => L.length ? L.filter(r => r.mort).length / L.length : null;
+    charts.cmortm = new Chart(document.getElementById("ch-cmortm"), { type: "line", data: { labels: M.ms.map(monthLabel), datasets: [lineDs("Конкуренты", M.comp.map(mort), mkt, 2), lineDs(lbl, M.own.map(mort), own)] },
+      options: lineOpts(v => nf0.format(v * 100) + " %", c => `${c.dataset.label}: ${nf0.format(c.raw * 100)} % (${(c.datasetIndex ? M.own : M.comp)[c.dataIndex].length} сд.)`, { beginAtZero: true, max: 1 }) });
+  }
+
+  // рейтинги по проектам: наш проект красным, все конкуренты вместе тёмно-синим
+  function cItems(V) {
+    const items = Object.entries(V.byP).map(([p, l]) => ({ p, s: cstats(l, V.months) }));
+    const o = cstats(V.own, V.months); if (o) items.push({ p: CLOC[CS.loc].label, s: o, own: true });
+    const c = cstats(V.comps, V.months); if (c) items.push({ p: "Среднее по конкурентам", s: Object.assign({}, c, { pace: c.pace / Math.max(Object.keys(V.byP).length, 1) }), mkt: true });
+    return items;
+  }
+  const CRANKS = {
+    "cr-n": { get: s => s.n, fmt: v => nf0.format(v), tick: v => nf0.format(v), mktGet: s => null },
+    "cr-pace": { get: s => s.pace, fmt: v => nf1.format(v), tick: v => nf0.format(v) },
+    "cr-ppm": { get: s => s.ppm, fmt: th, tick: v => nf0.format(v / 1000) },
+    "cr-budget": { get: s => s.budget, fmt: mln, tick: v => nf0.format(v / 1e6) },
+    "cr-area": { get: s => s.area, fmt: v => nf1.format(v), tick: v => nf0.format(v) },
+    "cr-mort": { get: s => s.mort, fmt: v => nf0.format(v * 100) + " %", tick: v => nf0.format(v * 100) + " %" }
+  };
+  function renderCRank(key, V) {
+    const cfg = CRANKS[key];
+    kill(key);
+    // в «Сделок за период» строка «Все конкуренты» не нужна: она в разы больше остальных
+    const items = cItems(V).filter(i => !(i.mkt && key === "cr-n")).sort((a, b) => cfg.get(b.s) - cfg.get(a.s));
+    const box = document.getElementById("box-" + key);
+    box.style.height = Math.max(160, items.length * (items.some(i => wrapLabel(i.p, 18).length > 1) ? 36 : 30) + 40) + "px";
+    if (!items.length) { box.innerHTML = EMPTY; return; }
+    const B = baseOpts(), own = cssv("--own"), mkt = cssv("--market"), comp = cssv("--comp");
+    const ownV = items.find(i => i.own);
+    charts[key] = new Chart(canvasIn(box), {
+      type: "bar",
+      data: { labels: items.map(i => wrapLabel(i.p, 18)), datasets: [{ data: items.map(i => cfg.get(i.s)), backgroundColor: items.map(i => i.own ? own : i.mkt ? mkt : comp), borderRadius: { topRight: 4, bottomRight: 4 }, borderSkipped: "start", barPercentage: .78, categoryPercentage: .9 }] },
+      options: Object.assign({}, B, {
+        indexAxis: "y", layout: { padding: { right: 52 } },
+        scales: { x: { beginAtZero: true, grid: { color: B.grid }, border: { display: false }, ticks: { callback: cfg.tick } }, y: { grid: { display: false }, border: { color: B.grid }, ticks: Object.assign(yTicksBold(B, items), { autoSkip: false }) } },
+        plugins: { legend: { display: false }, endLabels: { color: B.ink2, fmt: cfg.fmt },
+          tooltip: Object.assign({}, B.plugins.tooltip, { displayColors: false, callbacks: { title: c => items[c[0].dataIndex].p, label: c => { const s = items[c.dataIndex].s; const out = [`Сделок: ${nf0.format(s.n)} · ${nf1.format(s.pace)} в месяц`, `Цена м²: ${th(s.ppm)} тыс. ₽ (от ${th(s.min)} до ${th(s.max)})`, `Бюджет ${mln(s.budget)} млн ₽ · площадь ${nf1.format(s.area)} м²`, `Ипотека: ${nf0.format(s.mort * 100)} %`]; if (ownV && !items[c.dataIndex].own && cfg.get(ownV.s)) out.push(`К нашему проекту: ${pct(cfg.get(s) / cfg.get(ownV.s) - 1)}`); return out; } } }) }
+      }),
+      plugins: [endLabels]
+    });
+  }
+
+  function renderCMix(V) {
+    kill("cmix");
+    const box = document.getElementById("box-cmix");
+    const items = [{ p: CLOC[CS.loc].label, l: V.own, own: true }].filter(i => i.l.length).concat(Object.entries(V.byP).map(([p, l]) => ({ p, l })).sort((a, b) => b.l.length - a.l.length));
+    box.style.height = Math.max(160, items.length * 30 + 70) + "px";
+    if (!items.length) { box.innerHTML = EMPTY; return; }
+    const B = baseOpts(), cols = ["--r1", "--r2", "--r3", "--r5"].map(cssv), surface = cssv("--surface");
+    const counts = items.map(i => MIX.map(m => i.l.filter(r => m[2]({ rooms: roomKey(r.rooms) })).length));
+    charts.cmix = new Chart(canvasIn(box), {
+      type: "bar",
+      data: { labels: items.map(i => shortName(i.p)), datasets: MIX.map((m, mi) => ({ label: m[1], data: counts.map(cn => { const n = cn.reduce((a, b) => a + b, 0); return n ? cn[mi] / n * 100 : 0; }), backgroundColor: cols[mi], borderColor: surface, borderWidth: { right: 2, left: 0, top: 0, bottom: 0 }, borderSkipped: false, barPercentage: .8, categoryPercentage: .9 })) },
+      options: Object.assign({}, B, {
+        indexAxis: "y",
+        scales: { x: { stacked: true, min: 0, max: 100, grid: { color: B.grid }, border: { display: false }, ticks: { callback: v => v + " %" } }, y: { stacked: true, grid: { display: false }, border: { color: B.grid }, ticks: Object.assign(yTicksBold(B, items), { autoSkip: false }) } },
+        plugins: { legend: Object.assign({}, B.plugins.legend, { labels: Object.assign({}, B.plugins.legend.labels, { usePointStyle: false, boxWidth: 12, boxHeight: 12 }) }),
+          tooltip: Object.assign({}, B.plugins.tooltip, { callbacks: { title: c => items[c[0].dataIndex].p, label: c => `${c.dataset.label}: ${nf1.format(c.raw)} % (${counts[c.dataIndex][c.datasetIndex]} сд.)` } }) }
+      }),
+      plugins: [{ id: "cmixLabels", afterDatasetsDraw(chart) { const ctx = chart.ctx; ctx.save(); ctx.font = `500 11px ${Chart.defaults.font.family}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        chart.data.datasets.forEach((d, di) => chart.getDatasetMeta(di).data.forEach((bar, i) => { const v = d.data[i]; if (!v || Math.abs(bar.x - bar.base) < 30) return; ctx.fillStyle = di >= 2 ? "#FFFFFF" : B.ink; ctx.fillText(nf0.format(v) + "%", (bar.x + bar.base) / 2, bar.y); })); ctx.restore(); } }]
+    });
+  }
+
+  function renderCMatrix(V) {
+    const cols = ROOMS.filter(x => CS.rooms.has(x));
+    const ownBy = {}; cols.forEach(c => ownBy[c] = cstats(V.own.filter(r => roomKey(r.rooms) === c)));
+    const rows = (V.own.length ? [{ p: CLOC[CS.loc].label, l: V.own, own: true }] : [])
+      .concat(Object.entries(V.byP).map(([p, l]) => ({ p, l, s: cstats(l) })).sort((a, b) => b.s.ppm - a.s.ppm));
+    if (V.comps.length) rows.push({ p: "Среднее по конкурентам", l: V.comps, mkt: true });
+    const cell = (L, base, isOwn) => {
+      const s = cstats(L);
+      if (!s) return `<td class="cell">—</td>`;
+      const d = !isOwn && base ? s.ppm / base.ppm - 1 : null;
+      return `<td class="cell ${tint(d)}" title="${esc(`${s.n} сд. · от ${th(s.min)} до ${th(s.max)} тыс. ₽/м²`)}">${th(s.ppm)}<span class="sm">${d != null ? pct(d) + " · " : ""}${s.n} сд.</span></td>`;
+    };
+    document.getElementById("tbl-cmatrix").innerHTML = `<thead><tr><th class="l">Проект</th>${cols.map(c => `<th>${ROOM_LABEL[c]}</th>`).join("")}<th>Все</th></tr></thead><tbody>` +
+      rows.map(R => `<tr class="${R.own ? "own-row" : R.mkt ? "mkt-row" : ""}"><td>${esc(R.p)}</td>${cols.map(c => cell(R.l.filter(r => roomKey(r.rooms) === c), ownBy[c], R.own)).join("")}${cell(R.l, cstats(V.own), R.own)}</tr>`).join("") + "</tbody>";
+  }
+
+  const CSCOLS = [
+    { k: "p", label: "Проект", l: true, get: x => x.p, fmt: x => esc(x.p) },
+    { k: "n", label: "Сделок", get: x => x.s.n, fmt: x => nf0.format(x.s.n) },
+    { k: "share", label: "Доля рынка", get: x => x.share, fmt: x => nf1.format(x.share * 100) + " %" },
+    { k: "pace", label: "Темп, сд./мес", get: x => x.s.pace, fmt: x => nf1.format(x.s.pace) },
+    { k: "area", label: "Ср. S, м²", get: x => x.s.area, fmt: x => nf1.format(x.s.area) },
+    { k: "budget", label: "Ср. бюджет, млн ₽", get: x => x.s.budget, fmt: x => mln(x.s.budget) },
+    { k: "ppm", label: "₽/м²", get: x => x.s.ppm, fmt: x => `<b>${nf0.format(x.s.ppm)}</b>` },
+    { k: "delta", label: "К нашему", get: x => x.delta ?? -Infinity, fmt: x => x.delta == null ? "—" : pct(x.delta) },
+    { k: "mort", label: "Ипотека", get: x => x.s.mort, fmt: x => nf0.format(x.s.mort * 100) + " %" },
+    { k: "dkp", label: "Доля ДКП", get: x => x.s.dkp, fmt: x => x.own ? "—" : nf0.format(x.s.dkp * 100) + " %" }
+  ];
+  function renderCSummary(V) {
+    const total = V.own.length + V.comps.length;
+    const o = cstats(V.own, V.months);
+    const mk = (p, l, extra) => { const s = cstats(l, V.months); return Object.assign({ p, s, share: total ? l.length / total : 0, delta: o && !(extra && extra.own) ? s.ppm / o.ppm - 1 : null }, extra || {}); };
+    const comps = Object.entries(V.byP).map(([p, l]) => mk(p, l));
+    const col = CSCOLS.find(c => c.k === CS.sort.k) || CSCOLS[1];
+    sortBy(comps, CS.sort, (x, k) => col.get(x));
+    const rows = (V.own.length ? [mk(CLOC[CS.loc].label, V.own, { own: true })] : []).concat(comps);
+    if (V.comps.length) rows.push(mk("Все конкуренты", V.comps, { mkt: true }));
+    const t = document.getElementById("tbl-csum");
+    t.innerHTML = `<thead><tr>${CSCOLS.map(c => thS(c.k, c.label, CS.sort, c.l ? "l" : "")).join("")}</tr></thead><tbody>` +
+      rows.map(x => `<tr class="${x.own ? "own-row" : x.mkt ? "mkt-row" : ""}">${CSCOLS.map(c => `<td class="${c.l ? "l" : ""}">${c.fmt(x)}</td>`).join("")}</tr>`).join("") + "</tbody>";
+    t.onclick = e => { const h = e.target.closest("th.sortable"); if (!h) return; const k = h.dataset.k; CS.sort = { k, asc: CS.sort.k === k ? !CS.sort.asc : k === "p" }; renderCSummary(cdealsView()); };
+  }
+
+  const cdealsHashOf = () => "cdeals" + (CS.loc === "alisa" ? "" : "-" + CS.loc);
+  function renderCdeals() {
+    renderCdealsFilters();
+    const V = cdealsView();
+    renderCdealsKpis(V); renderCdealsMonthly(V);
+    Object.keys(CRANKS).forEach(k => renderCRank(k, V));
+    renderCMix(V); renderCMatrix(V); renderCSummary(V);
+  }
+
   function goSection(mode) {
     if (S.mode === mode) return;
     S.mode = mode;
-    try { history.replaceState(null, "", "#" + (mode === "deals" ? dealsHashOf() : S.g)); } catch (e) {}
+    try { history.replaceState(null, "", "#" + (mode === "deals" ? dealsHashOf() : mode === "cdeals" ? cdealsHashOf() : S.g)); } catch (e) {}
     window.scrollTo(0, 0); renderAll();
   }
   document.getElementById("nav-offer").addEventListener("click", () => goSection("comp"));
   document.getElementById("nav-deals").addEventListener("click", () => goSection("deals"));
+  document.getElementById("nav-cdeals").addEventListener("click", () => goSection("cdeals"));
 
   // ---------- автообновление из Google-таблицы ----------
   // Страница при открытии читает опубликованные листы «Конкуренты рабочая» и «справочник индексов».
@@ -1657,11 +2003,18 @@ footer.method b { color: var(--ink); font-weight: 600; }
 
   // ---------- render ----------
   function renderAll(keepDropdown) {
-    const deals = S.mode === "deals";
-    document.getElementById("view-comp").hidden = deals;
+    const deals = S.mode === "deals", cdeals = S.mode === "cdeals";
+    document.getElementById("view-comp").hidden = deals || cdeals;
     document.getElementById("view-deals").hidden = !deals;
-    document.getElementById("nav-offer").setAttribute("aria-pressed", !deals);
+    document.getElementById("view-cdeals").hidden = !cdeals;
+    document.getElementById("nav-offer").setAttribute("aria-pressed", !deals && !cdeals);
     document.getElementById("nav-deals").setAttribute("aria-pressed", deals);
+    document.getElementById("nav-cdeals").setAttribute("aria-pressed", cdeals);
+    if (cdeals) {
+      document.getElementById("page-title").textContent = "Сделки конкурентов";
+      document.getElementById("asof").textContent = `${CLOC[CS.loc].label} и конкуренты · договоры ${CS.from ? monthLong(CS.from) : ""} – ${CS.to ? monthLong(CS.to) : ""}`;
+      renderTabs(); renderCdeals(); return;
+    }
     document.getElementById("page-title").textContent = deals ? "Сделки" : "Конкурентный срез";
     document.getElementById("asof").textContent = deals ? (DMONTHS.length ? `${objLabel()} · договоры ${monthLong(DMONTHS[0])} – ${monthLong(DMONTHS[DMONTHS.length - 1])}` : "Сделки") : `Екатеринбург · цены на ${ru(latest)}`;
     if (deals) { renderTabs(); renderDeals(); return; }
@@ -1676,6 +2029,8 @@ footer.method b { color: var(--ink); font-weight: 600; }
   if (window.BUILT_AT) document.getElementById("deals-built").textContent = `Обновляется автоматически каждый день, последнее изменение ${window.BUILT_AT}.`;
   resetFilters(); dealsReset();
   if (dealsHash) { const ks = initialG.slice(6).split("-").filter(k => DOBJ[k]); if (ks.length) DS.objs = new Set(ks); }
+  if (initialG.startsWith("cdeals-") && CLOC[initialG.slice(7)]) CS.loc = initialG.slice(7);
+  cdealsReset();
   dealsReset();
   if (typeof Chart === "undefined") {
     document.querySelectorAll(".chart-box").forEach(b => b.innerHTML = `<div class="empty">Не удалось загрузить библиотеку графиков. Проверьте доступ к cdnjs.cloudflare.com</div>`);
