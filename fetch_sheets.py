@@ -40,9 +40,11 @@ def profile_cdeals(title, rows):
     cell = lambda r, i: r[i].strip() if i < len(r) and isinstance(r[i], str) else ""
     body = rows[1:]
     print("Проекты (A): " + "; ".join(f"{k}={v}" for k, v in Counter(cell(r, 0) for r in body).most_common(60)))
-    for idx in (20, 40):  # U — комнатность, AO — ипотека
+    for idx in (17, 20, 36, 37, 38, 40):  # R — вид помещения, U — комнатность, AK — тип договора, AL/AM — продавец/покупатель, AO — обременение
         print(f"{col_letter(idx)} варианты: " + "; ".join(f"{k or '(пусто)'}={v}" for k, v in Counter(cell(r, idx) for r in body).most_common(15)))
     dates = sorted({cell(r, 34) for r in body if cell(r, 34)})
+    months = Counter(cell(r, 34)[3:] for r in body if len(cell(r, 34)) == 10)
+    print("AI по месяцам: " + "; ".join(f"{k}={v}" for k, v in sorted(months.items(), key=lambda x: (x[0][3:], x[0][:2]))))
     print(f"AI даты: {len(dates)} разных, примеры {dates[:3]} … {dates[-3:]}")
     sample = next((r for r in body if cell(r, 23) and cell(r, 24)), [])
     print(f"Формат X/Y: {cell(sample, 23)!r} / {cell(sample, 24)!r}")
