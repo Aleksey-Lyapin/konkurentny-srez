@@ -471,18 +471,18 @@ footer.method b { color: var(--ink); font-weight: 600; }
     </article>
     <article class="card third">
       <h2>Цена м² сделок по месяцам</h2>
-      <p class="sub">Сумма договоров к сумме площадей, тыс. ₽/м²</p>
+      <p class="sub">Сумма договоров к сумме площадей с коэф. 1, тыс. ₽/м²</p>
       <div class="chart-box" style="height:300px"><canvas id="ch-cppm"></canvas></div>
     </article>
 
     <article class="card third">
       <h2>Цена м² сделок</h2>
-      <p class="sub">Средняя цена м² по договорам, тыс. ₽</p>
+      <p class="sub">Средняя цена м² по договорам, тыс. ₽ (площадь с коэф. 1)</p>
       <div class="chart-box" id="box-cr-ppm"><canvas></canvas></div>
     </article>
     <article class="card third">
       <h2>Средняя площадь сделки</h2>
-      <p class="sub">Средняя площадь проданной квартиры, м²</p>
+      <p class="sub">Средняя площадь проданной квартиры с коэф. 1, м²</p>
       <div class="chart-box" id="box-cr-area"><canvas></canvas></div>
     </article>
     <article class="card third">
@@ -520,7 +520,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
 
     <article class="card full">
       <h2>Цена м² сделок по комнатности</h2>
-      <p class="sub">Средняя цена м², тыс. ₽, и число сделок. Отклонение у конкурентов считается от нашего проекта в той же комнатности</p>
+      <p class="sub">Средняя цена м², тыс. ₽ (площадь с коэф. 1), и число сделок. Отклонение у конкурентов считается от нашего проекта в той же комнатности</p>
       <div class="legend-row">
         <span><span class="sw" style="background:var(--ink);box-shadow:inset 3px 0 0 var(--own)"></span>наш проект</span>
         <span><span class="sw" style="background:var(--c3)"></span>конкурент дешевле на 10 % и больше</span>
@@ -539,8 +539,8 @@ footer.method b { color: var(--ink); font-weight: 600; }
   </section>
 
   <footer class="method">
-    <div><b>Источники.</b> Сделки конкурентов — лист «Сделки» книги «Копия Алиса: план, дцо, прайс»: дата договора (столбец AI), комнатность по данным Объектива (U), площадь сводная (X), расчётный бюджет лота (Y), ипотека по типу обременения (AO). Наши сделки — таблица «Сделки — сводная (Бестселлер, Алиса, ДМД2)», лист «Все сделки», площадь с коэффициентом 1 (столбец K). Состав конкурентов — справочник: для Алисы её список, для ДМД2 список «Милого дома».</div>
-    <div><b>Расчёты.</b> Цена м² — сумма договоров к сумме площадей. Доля рынка — наши сделки к сумме наших и конкурентских за тот же период. Темп — сделки, делённые на число месяцев периода. По умолчанию выбран период, за который есть данные и по нашим сделкам, и по конкурентам. Сделки конкурентов попадают в выгрузку после регистрации договора, поэтому последний месяц может быть неполным.</div>
+    <div><b>Источники.</b> Сделки конкурентов — лист «Сделки» книги «Копия Алиса: план, дцо, прайс»: дата договора (столбец AI), комнатность по данным Объектива (U), площадь сводная с коэф. 1 (X), расчётный бюджет лота (Y), ипотека по типу обременения (AO). Наши сделки — таблица «Сделки — сводная (Бестселлер, Алиса, ДМД2)», лист «Все сделки», площадь с коэффициентом 1 (столбец K). Состав конкурентов — справочник: для Алисы её список, для ДМД2 список «Милого дома».</div>
+    <div><b>Расчёты.</b> Везде используются площади с коэффициентом 1. Цена м² — сумма договоров к сумме площадей с коэф. 1. Доля рынка — наши сделки к сумме наших и конкурентских за тот же период. Темп — сделки, делённые на число месяцев периода. По умолчанию выбран период, за который есть данные и по нашим сделкам, и по конкурентам. Сделки конкурентов попадают в выгрузку после регистрации договора, поэтому последний месяц может быть неполным.</div>
   </footer>
 </main>
 
@@ -1730,9 +1730,9 @@ footer.method b { color: var(--ink); font-weight: 600; }
     const tiles = [
       { own: true, label: `Наши сделки · ${lbl}`, val: o ? nf0.format(o.n) : "0", sub: share != null ? `доля рынка <span class="d">${nf1.format(share * 100)} %</span> · ${o ? nf1.format(o.pace) : 0} в месяц` : "" },
       { label: "Сделки конкурентов", val: c ? nf0.format(c.n) : "0", sub: c ? `в ${nP} проектах · ${nf1.format(c.pace / Math.max(nP, 1))} в месяц на проект` : "нет сделок при выбранных фильтрах" },
-      { own: true, label: "Цена м² сделок · наш проект", val: o ? th(o.ppm) : "—", unit: "тыс. ₽", sub: vs(o && o.ppm, c && c.ppm, v => th(v) + " тыс. ₽") },
+      { own: true, label: "Цена м² сделок · наш проект", val: o ? th(o.ppm) : "—", unit: "тыс. ₽", sub: vs(o && o.ppm, c && c.ppm, v => th(v) + " тыс. ₽") + " · площадь с коэф. 1" },
       { own: true, label: "Средний бюджет · наш проект", val: o ? mln(o.budget) : "—", unit: "млн ₽", sub: vs(o && o.budget, c && c.budget, v => mln(v) + " млн ₽") },
-      { own: true, label: "Средняя площадь · наш проект", val: o ? nf1.format(o.area) : "—", unit: "м²", sub: vs(o && o.area, c && c.area, v => nf1.format(v) + " м²") },
+      { own: true, label: "Средняя площадь с коэф. 1 · наш проект", val: o ? nf1.format(o.area) : "—", unit: "м²", sub: vs(o && o.area, c && c.area, v => nf1.format(v) + " м²") },
       { own: true, label: "Доля ипотеки · наш проект", val: o ? nf0.format(o.mort * 100) + " %" : "—", sub: c ? `у конкурентов ${nf0.format(c.mort * 100)} %` : "" }
     ];
     document.getElementById("c-kpis").innerHTML = tiles.map(t => `<div class="kpi${t.own ? " own" : ""}"><span class="k-label">${esc(t.label)}</span><span class="k-val">${t.val}${t.unit && t.val !== "—" ? `<small>${t.unit}</small>` : ""}</span><span class="k-sub">${t.sub || "&nbsp;"}</span></div>`).join("");
@@ -1866,9 +1866,9 @@ footer.method b { color: var(--ink); font-weight: 600; }
     { k: "n", label: "Сделок", get: x => x.s.n, fmt: x => nf0.format(x.s.n) },
     { k: "share", label: "Доля рынка", get: x => x.share, fmt: x => nf1.format(x.share * 100) + " %" },
     { k: "pace", label: "Темп, сд./мес", get: x => x.s.pace, fmt: x => nf1.format(x.s.pace) },
-    { k: "area", label: "Ср. S, м²", get: x => x.s.area, fmt: x => nf1.format(x.s.area) },
+    { k: "area", label: "Ср. S, м² (коэф. 1)", get: x => x.s.area, fmt: x => nf1.format(x.s.area) },
     { k: "budget", label: "Ср. бюджет, млн ₽", get: x => x.s.budget, fmt: x => mln(x.s.budget) },
-    { k: "ppm", label: "₽/м²", get: x => x.s.ppm, fmt: x => `<b>${nf0.format(x.s.ppm)}</b>` },
+    { k: "ppm", label: "₽/м² (коэф. 1)", get: x => x.s.ppm, fmt: x => `<b>${nf0.format(x.s.ppm)}</b>` },
     { k: "delta", label: "К нашему", get: x => x.delta ?? -Infinity, fmt: x => x.delta == null ? "—" : pct(x.delta) },
     { k: "mort", label: "Ипотека", get: x => x.s.mort, fmt: x => nf0.format(x.s.mort * 100) + " %" },
     { k: "dkp", label: "Доля ДКП", get: x => x.s.dkp, fmt: x => x.own ? "—" : nf0.format(x.s.dkp * 100) + " %" }
