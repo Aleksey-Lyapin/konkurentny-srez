@@ -247,7 +247,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     <div class="fgroup"><span class="flabel">Отделка лота</span><div class="chips" id="f-finish"></div></div>
     <div class="fgroup"><span class="flabel">Стадия</span><div class="seg" id="f-stage"></div></div>
     <div class="fgroup"><span class="flabel">Класс</span><div class="chips" id="f-class"></div></div>
-    <div class="fgroup"><span class="flabel">Площадь, м²</span>
+    <div class="fgroup"><span class="flabel">Площадь, м² (коэф. 1)</span>
       <details class="dd" id="f-area"><summary id="f-area-sum">Все</summary><div class="dd-panel" id="f-area-panel"></div></details>
     </div>
     <div class="fgroup"><span class="flabel">Этаж</span>
@@ -272,7 +272,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     </article>
     <article class="card third">
       <h2>Средняя площадь по проектам</h2>
-      <p class="sub">Средняя площадь лота в продаже, м²</p>
+      <p class="sub">Средняя площадь лота в продаже с коэф. 1, м²</p>
       <div class="chart-box" id="box-area"><canvas></canvas></div>
     </article>
     <article class="card third">
@@ -301,18 +301,18 @@ footer.method b { color: var(--ink); font-weight: 600; }
     </article>
     <article class="card half">
       <h2>Цена м² по диапазонам площади</h2>
-      <p class="sub">Наш проект против среднего по конкурентам; серая полоса показывает разброс средних по проектам-конкурентам</p>
+      <p class="sub">Наш проект против среднего по конкурентам; серая полоса показывает разброс средних по проектам-конкурентам. Площадь с коэф. 1</p>
       <div class="chart-box" style="height:380px"><canvas id="ch-line"></canvas></div>
     </article>
     <article class="card half">
       <h2>Площадь и бюджет лотов</h2>
-      <p class="sub">Каждая точка — лот в продаже. Наведите, чтобы увидеть проект и параметры</p>
+      <p class="sub">Каждая точка — лот в продаже, площадь с коэф. 1. Наведите, чтобы увидеть проект и параметры</p>
       <div class="chart-box" style="height:380px"><canvas id="ch-scatter"></canvas></div>
     </article>
 
     <article class="card full">
       <h2>Цена м² по комнатности</h2>
-      <p class="sub">Средняя цена м², тыс. ₽, и число лотов. Отклонение у конкурентов считается от нашего проекта в той же комнатности</p>
+      <p class="sub">Средняя цена м², тыс. ₽ (площадь с коэф. 1), и число лотов. Отклонение у конкурентов считается от нашего проекта в той же комнатности</p>
       <div class="legend-row">
         <span id="lg-own"><span class="sw" style="background:var(--ink);box-shadow:inset 3px 0 0 var(--own)"></span>наш проект</span>
         <span><span class="sw" style="background:var(--c3)"></span>конкурент дешевле на 10 % и больше</span>
@@ -803,20 +803,20 @@ footer.method b { color: var(--ink); font-weight: 600; }
       const nP = Object.values(V.compsByP).filter(a => a.length).length;
       const mt = [
         { label: "Лотов в продаже · конкуренты", val: c ? nf0.format(c.n) : "0", sub: `в ${nP} проектах` },
-        { label: "Средняя цена м² · конкуренты", val: c ? th(c.ppm) : "—", unit: "тыс. ₽", sub: projAvgs.length ? `по проектам от ${th(Math.min(...projAvgs))} до ${th(Math.max(...projAvgs))} тыс. ₽` : "" },
-        { label: "Медиана цены м² · конкуренты", val: c ? th(c.med) : "—", unit: "тыс. ₽", sub: c ? `по лотам от ${th(c.min)} до ${th(c.max)} тыс. ₽` : "" },
+        { label: "Средняя цена м² (коэф. 1) · конкуренты", val: c ? th(c.ppm) : "—", unit: "тыс. ₽", sub: projAvgs.length ? `по проектам от ${th(Math.min(...projAvgs))} до ${th(Math.max(...projAvgs))} тыс. ₽` : "" },
+        { label: "Медиана цены м² (коэф. 1) · конкуренты", val: c ? th(c.med) : "—", unit: "тыс. ₽", sub: c ? `по лотам от ${th(c.min)} до ${th(c.max)} тыс. ₽` : "" },
         { label: "Средний бюджет · конкуренты", val: c ? mln(c.budget) : "—", unit: "млн ₽", sub: c ? `медиана ${mln(c.bMed)} млн ₽` : "" },
-        { label: "Средняя площадь · конкуренты", val: c ? nf1.format(c.area) : "—", unit: "м²", sub: c ? `медиана ${nf1.format(c.aMed)} м²` : "" }
+        { label: "Средняя площадь с коэф. 1 · конкуренты", val: c ? nf1.format(c.area) : "—", unit: "м²", sub: c ? `медиана ${nf1.format(c.aMed)} м²` : "" }
       ];
       document.getElementById("kpis").innerHTML = mt.map(t => `<div class="kpi"><span class="k-label">${esc(t.label)}</span><span class="k-val">${t.val}${t.unit && t.val !== "—" ? `<small>${t.unit}</small>` : ""}</span><span class="k-sub">${t.sub || "&nbsp;"}</span></div>`).join("");
       return;
     }
     const tiles = [
       { own: true, label: `Лотов в продаже · ${V.G.label}`, val: o ? nf0.format(o.n) : "0", sub: c ? `у конкурентов ${nf0.format(c.n)} в ${Object.values(V.compsByP).filter(a => a.length).length} проектах` : "конкуренты не выбраны" },
-      { own: true, label: "Средняя цена м² · наш проект", val: o ? th(o.ppm) : "—", unit: "тыс. ₽", sub: o && c ? dTxt(rel(o.ppm, c.ppm), "к среднему по конкурентам", "к среднему по конкурентам") : (o ? "" : "нет лотов при выбранных фильтрах") },
-      { label: "Средняя цена м² · конкуренты", val: c ? th(c.ppm) : "—", unit: "тыс. ₽", sub: projAvgs.length ? `по проектам от ${th(Math.min(...projAvgs))} до ${th(Math.max(...projAvgs))} тыс. ₽` : "" },
+      { own: true, label: "Средняя цена м² (коэф. 1) · наш проект", val: o ? th(o.ppm) : "—", unit: "тыс. ₽", sub: o && c ? dTxt(rel(o.ppm, c.ppm), "к среднему по конкурентам", "к среднему по конкурентам") : (o ? "" : "нет лотов при выбранных фильтрах") },
+      { label: "Средняя цена м² (коэф. 1) · конкуренты", val: c ? th(c.ppm) : "—", unit: "тыс. ₽", sub: projAvgs.length ? `по проектам от ${th(Math.min(...projAvgs))} до ${th(Math.max(...projAvgs))} тыс. ₽` : "" },
       { own: true, label: "Средний бюджет · наш проект", val: o ? mln(o.budget) : "—", unit: "млн ₽", sub: c ? `у конкурентов ${mln(c.budget)} млн ₽` + (o ? ` (${pct(rel(o.budget, c.budget))})` : "") : "" },
-      { own: true, label: "Средняя площадь · наш проект", val: o ? nf1.format(o.area) : "—", unit: "м²", sub: c ? `у конкурентов ${nf1.format(c.area)} м²` : "" }
+      { own: true, label: "Средняя площадь с коэф. 1 · наш проект", val: o ? nf1.format(o.area) : "—", unit: "м²", sub: c ? `у конкурентов ${nf1.format(c.area)} м²` : "" }
     ];
     document.getElementById("kpis").innerHTML = tiles.map(t =>
       `<div class="kpi${t.own ? " own" : ""}"><span class="k-label">${esc(t.label)}</span><span class="k-val">${t.val}${t.unit && t.val !== "—" ? `<small>${t.unit}</small>` : ""}</span><span class="k-sub">${t.sub || "&nbsp;"}</span></div>`).join("");
@@ -928,7 +928,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
     });
   }
   function renderBar(V) {
-    document.getElementById("sub-bar").textContent = `Цена ${S.price === "disc" ? "со скидкой и корректировкой на отделку" : "по прайсу"}, тыс. ₽/м²`;
+    document.getElementById("sub-bar").textContent = `Цена ${S.price === "disc" ? "со скидкой и корректировкой на отделку" : "по прайсу"}, тыс. ₽/м², площадь с коэф. 1`;
     document.getElementById("sub-budget").textContent = `Средний бюджет лота ${S.price === "disc" ? "со скидкой и корректировкой на отделку" : "по прайсу"}, млн ₽`;
     renderRank("bar", V); renderRank("area", V); renderRank("budget", V);
   }
@@ -1016,8 +1016,8 @@ footer.method b { color: var(--ink); font-weight: 600; }
     segGroup("f-floor", [["idx", "% к средней"], ["abs", "₽/м²"]], S.floor, v => { S.floor = v; store.set("cs.floor", v); });
     const idx = S.floor === "idx";
     document.getElementById("sub-floor").textContent = idx
-      ? "Отклонение цены м² на группе этажей от средней цены м² своего проекта. У конкурентов — среднее отклонение по их проектам, взвешенное по числу лотов"
-      : "Средняя цена м² по группам этажей, тыс. ₽. У конкурентов смешаны проекты разной этажности, поэтому для оценки премии точнее режим «% к средней»";
+      ? "Площадь с коэф. 1. Отклонение цены м² на группе этажей от средней цены м² своего проекта. У конкурентов — среднее отклонение по их проектам, взвешенное по числу лотов"
+      : "Средняя цена м² по группам этажей, тыс. ₽, площадь с коэф. 1. У конкурентов смешаны проекты разной этажности, поэтому для оценки премии точнее режим «% к средней»";
     const ownS = idx ? floorIndex([V.own]) : floorAbs(V.own);
     const compS = idx ? floorIndex(Object.values(V.compsByP).filter(l => l.length)) : floorAbs(V.compAll);
     const keep = FLOOR_GROUPS.map((g, i) => ownS[i] || compS[i]);
@@ -1141,7 +1141,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
       options: Object.assign({}, B, {
         interaction: { mode: "index", intersect: false },
         scales: {
-          x: { grid: { display: false }, border: { color: B.grid }, title: { display: true, text: "Площадь, м²", color: B.muted } },
+          x: { grid: { display: false }, border: { color: B.grid }, title: { display: true, text: "Площадь с коэф. 1, м²", color: B.muted } },
           y: { grid: { color: B.grid }, border: { display: false }, ticks: { callback: v => nf0.format(v / 1000) }, title: { display: true, text: "тыс. ₽/м²", color: B.muted } }
         },
         plugins: {
@@ -1172,7 +1172,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
       ] },
       options: Object.assign({}, B, {
         scales: {
-          x: { grid: { color: B.grid }, border: { display: false }, title: { display: true, text: "Площадь, м²", color: B.muted } },
+          x: { grid: { color: B.grid }, border: { display: false }, title: { display: true, text: "Площадь с коэф. 1, м²", color: B.muted } },
           y: { grid: { color: B.grid }, border: { display: false }, title: { display: true, text: `Бюджет${S.price === "disc" ? " со скидкой" : ""}, млн ₽`, color: B.muted } }
         },
         plugins: {
@@ -1233,7 +1233,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
   document.getElementById("method").innerHTML = [
     `<div><b>Источник.</b> Google-таблица «Копия Алиса: план, дцо, прайс»: лист «Конкуренты рабочая» (${nf0.format(ROWS.length)} лотов, только квартиры) и состав конкурентов по каждому проекту с листа «справочник индексов». ${srcTxt}</div>`,
     `<div><b>Цена со скидкой и отделкой</b> берётся из столбца «Цена со скидкой»: прайс, умноженный на коэффициент скидки проекта, плюс корректировка на отделку. В режиме «Прайс» используется цена предложения без скидки.</div>`,
-    `<div><b>Средняя цена м²</b> считается как сумма бюджетов, делённая на сумму площадей (взвешено по площади). Мин., макс. и медиана считаются по ценам м² отдельных лотов. Комнатность по данным Объектива, площадь сводная. Интервалы площади в фильтре взяты из столбца «Тип площади».</div>`
+    `<div><b>Средняя цена м²</b> считается как сумма бюджетов, делённая на сумму площадей (взвешено по площади). Мин., макс. и медиана считаются по ценам м² отдельных лотов. Комнатность по данным Объектива, площадь сводная с коэф. 1 (столбец X). Интервалы площади в фильтре взяты из столбца «Тип площади».</div>`
   ].join("");
   }
 
@@ -1293,7 +1293,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
         const dear = withAn.filter(x => x.delta > PAR).length, cheap = withAn.filter(x => x.delta < -PAR).length;
         ins.innerHTML = `Сопоставимое отклонение (медиана разниц по нашим лотам): ${pill(md)}. Дороже аналогов <b>${dear}</b> из ${withAn.length} лотов, в паритете <b>${withAn.length - dear - cheap}</b>, дешевле <b>${cheap}</b>${rows.length > withAn.length ? `; без аналогов ${rows.length - withAn.length}` : ""}.`;
       } else ins.innerHTML = "";
-      let h = `<thead><tr>${thS("corp", "Корпус / лот", s, "l")}${thS("floor", "Этаж", s)}${thS("r", "Комн.", s)}${thS("area", "Площадь, м²", s)}${thS("fin", "Отделка", s, "l")}${thS("price", "Цена, млн ₽", s)}${thS("ppm", "Наша цена м²", s)}${thS("n", "Аналогов", s)}${thS("med", "Медиана аналогов, м²", s)}${thS("delta", "Разница", s)}</tr></thead><tbody>`;
+      let h = `<thead><tr>${thS("corp", "Корпус / лот", s, "l")}${thS("floor", "Этаж", s)}${thS("r", "Комн.", s)}${thS("area", "Площадь, м² (коэф. 1)", s)}${thS("fin", "Отделка", s, "l")}${thS("price", "Цена, млн ₽", s)}${thS("ppm", "Наша цена м²", s)}${thS("n", "Аналогов", s)}${thS("med", "Медиана аналогов, м²", s)}${thS("delta", "Разница", s)}</tr></thead><tbody>`;
       rows.forEach(x => {
         const id = lotId(x.l), open = S.openLot === id;
         h += `<tr class="clk${open ? " open" : ""}" data-id="${esc(id)}" tabindex="0" aria-expanded="${open}"><td class="l"><span class="caret">${open ? "▾" : "▸"}</span>${esc(x.l.k)} · №${esc(x.l.lot)}</td><td>${x.l.floor ?? "—"}</td><td>${ROOM_LABEL[x.l.rooms] || esc(x.l.rooms)}</td><td>${nf1.format(x.l.area)}</td><td class="l">${esc(x.l.fl || "—")}</td><td>${nf1.format(budget(x.l) / 1e6)}</td><td class="ours-v">${nf0.format(ppmOf(x.l))}</td><td>${x.an.length}</td><td>${x.med ? nf0.format(x.med) : "—"}</td><td>${pill(x.delta)}</td></tr>`;
@@ -1303,7 +1303,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
           const per = Object.entries(byP).map(([p, ls]) => ({ p, v: medianOf(ls.map(ppmOf)), n: ls.length })).sort((a, b) => b.v - a.v);
           h += `<tr class="subrow"><td colspan="10"><div class="anbox">${an.length ? `
             <div class="an-per">По проектам (медиана ₽/м² аналогов): ${per.map(q => `<span class="an-p">${esc(q.p)} <b>${nf0.format(q.v)}</b> <span class="muted">(${q.n})</span> ${pill(ppmOf(x.l) / q.v - 1, false)}</span>`).join("")}</div>
-            <div class="tbl-wrap"><table class="an-sub"><thead><tr><th class="l">Проект</th><th class="l">Корпус</th><th>Этаж</th><th>Площадь, м²</th><th class="l">Отделка</th><th class="l">Стадия</th><th>Ввод</th><th>Цена, млн ₽</th><th>₽/м²</th><th>Мы vs лот</th></tr></thead><tbody>
+            <div class="tbl-wrap"><table class="an-sub"><thead><tr><th class="l">Проект</th><th class="l">Корпус</th><th>Этаж</th><th>Площадь, м² (коэф. 1)</th><th class="l">Отделка</th><th class="l">Стадия</th><th>Ввод</th><th>Цена, млн ₽</th><th>₽/м²</th><th>Мы vs лот</th></tr></thead><tbody>
             ${an.slice(0, 25).map(a => `<tr><td class="l">${esc(a.p)}</td><td class="l">${esc(a.k)}</td><td>${a.floor ?? "—"}</td><td>${nf1.format(a.area)}</td><td class="l">${esc(a.fl || "—")}</td><td class="l">${stageWord(a.st)}</td><td>${quarter(a.plan)}</td><td>${nf1.format(budget(a) / 1e6)}</td><td>${nf0.format(ppmOf(a))}</td><td>${pill(ppmOf(x.l) / ppmOf(a) - 1, false)}</td></tr>`).join("")}</tbody></table></div>
             ${an.length > 25 ? `<div class="muted small">Показаны 25 ближайших по площади из ${an.length}.</div>` : ""}`
             : `<div class="muted">Аналогов нет. Увеличьте допуск по площади или этажу либо снимите условия совпадения.</div>`}</div></td></tr>`;
@@ -1323,7 +1323,7 @@ footer.method b { color: var(--ink); font-weight: 600; }
       sortBy(all, s, (l, k) => ({ proj: l.p, corp: l.k, floor: l.floor, r: ROOMS.indexOf(l.rooms), area: l.area, fin: l.fl, st: l.st, dl: l.plan, price: budget(l), ppm: ppmOf(l) }[k]));
       const lim = 400;
       hint.textContent = `${nf0.format(all.length)} лот. в выборке${all.length > lim ? `, показаны первые ${lim} по текущей сортировке` : ""}. Наши лоты выделены.`;
-      tbl.innerHTML = `<thead><tr>${thS("proj", "Проект", s, "l")}${thS("corp", "Корпус", s, "l")}${thS("floor", "Этаж", s)}${thS("r", "Комн.", s)}${thS("area", "Площадь, м²", s)}${thS("fin", "Отделка", s, "l")}${thS("st", "Стадия", s, "l")}${thS("dl", "Ввод", s)}${thS("price", "Цена, млн ₽", s)}${thS("ppm", "₽/м²", s)}</tr></thead><tbody>`
+      tbl.innerHTML = `<thead><tr>${thS("proj", "Проект", s, "l")}${thS("corp", "Корпус", s, "l")}${thS("floor", "Этаж", s)}${thS("r", "Комн.", s)}${thS("area", "Площадь, м² (коэф. 1)", s)}${thS("fin", "Отделка", s, "l")}${thS("st", "Стадия", s, "l")}${thS("dl", "Ввод", s)}${thS("price", "Цена, млн ₽", s)}${thS("ppm", "₽/м²", s)}</tr></thead><tbody>`
         + all.slice(0, lim).map(l => `<tr class="${l.p === V.G.own ? "own-row" : ""}"><td class="l">${esc(l.p)}</td><td class="l">${esc(l.k)}</td><td>${l.floor ?? "—"}</td><td>${ROOM_LABEL[l.rooms] || esc(l.rooms)}</td><td>${nf1.format(l.area)}</td><td class="l">${esc(l.fl || "—")}</td><td class="l">${stageWord(l.st)}</td><td>${quarter(l.plan)}</td><td>${nf1.format(budget(l) / 1e6)}</td><td>${nf0.format(ppmOf(l))}</td></tr>`).join("") + "</tbody>";
       tbl.onclick = e => { const t = e.target.closest("th.sortable"); if (!t) return; const k = t.dataset.k; S.sortAll = { k, asc: S.sortAll.k === k ? !S.sortAll.asc : false }; renderAnalogs(view()); };
     }
