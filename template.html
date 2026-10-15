@@ -1820,15 +1820,17 @@ footer.method b { color: var(--ink); font-weight: 600; }
     "cr-n": { get: s => s.n, fmt: v => nf0.format(v), tick: v => nf0.format(v), mktGet: s => null },
     "cr-pace": { get: s => s.pace, fmt: v => nf1.format(v), tick: v => nf0.format(v) },
     "cr-ppm": { get: s => s.ppm, fmt: th, tick: v => nf0.format(v / 1000) },
-    "cr-budget": { get: s => s.budget, fmt: mln, tick: v => nf0.format(v / 1e6) },
-    "cr-area": { get: s => s.area, fmt: v => nf1.format(v), tick: v => nf0.format(v) },
+    "cr-budget": { get: s => s.budget, fmt: mln, tick: v => nf0.format(v / 1e6), sortBy: "cr-ppm" },
+    "cr-area": { get: s => s.area, fmt: v => nf1.format(v), tick: v => nf0.format(v), sortBy: "cr-ppm" },
     "cr-mort": { get: s => s.mort, fmt: v => nf0.format(v * 100) + " %", tick: v => nf0.format(v * 100) + " %" }
   };
   function renderCRank(key, V) {
     const cfg = CRANKS[key];
     kill(key);
     // в «Сделок за период» строка «Все конкуренты» не нужна: она в разы больше остальных
-    const items = cItems(V).filter(i => !(i.mkt && key === "cr-n")).sort((a, b) => cfg.get(b.s) - cfg.get(a.s));
+    // площадь и бюджет идут в порядке графика «Цена м² сделок», чтобы проекты стояли на одной линии
+    const sortGet = cfg.sortBy ? CRANKS[cfg.sortBy].get : cfg.get;
+    const items = cItems(V).filter(i => !(i.mkt && key === "cr-n")).sort((a, b) => sortGet(b.s) - sortGet(a.s));
     const box = document.getElementById("box-" + key);
     box.style.height = Math.max(160, items.length * (items.some(i => wrapLabel(i.p, 18).length > 1) ? 36 : 30) + 40) + "px";
     if (!items.length) { box.innerHTML = EMPTY; return; }
