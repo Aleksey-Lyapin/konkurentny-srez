@@ -50,7 +50,21 @@ jobs:
           $now = [TimeZoneInfo]::ConvertTimeFromUtc([DateTime]::UtcNow, $tz).ToString('dd.MM.yyyy HH:mm')
           & "$dir\build_data.ps1" -src "$dir\raw\lots.json" -out "$dir\data.js"
           & "$dir\build_deals.ps1" -src "$dir\raw\deals.json" -out "$dir\deals.js"
-          & "$dir\build_page.ps1" -dir $dir -data "$dir\data.js" -deals "$dir\deals.js" -ref "$dir\ref.js" -builtAt $now
+          $cd = ""
+          if (Test-Path "$dir\raw\cdeals.json") {
+            try { & "$dir\build_cdeals.ps1" -src "$dir\raw\cdeals.json" -out "$dir\cdeals.js"; $cd = "$dir\cdeals.js" }
+            catch { Write-Host "::warning::Сделки конкурентов не собраны: $($_.Exception.Message)" }
+          }
+          & "$dir\build_page.ps1" -dir $dir -data "$dir\data.js" -deals "$dir\deals.js" -ref "$dir\ref.js" -builtAt $now -cdeals $cd
+
+      - name: Сохранить сделки конкурентов (для проверки сборки)
+        if: steps.fetch.outputs.ok == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cdeals
+          path: cdeals.js
+          retention-days: 3
+          if-no-files-found: ignore
 
       - name: Опубликовать, если данные изменились
         if: steps.fetch.outputs.ok == 'true'
